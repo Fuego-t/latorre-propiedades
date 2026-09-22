@@ -1,0 +1,41 @@
+# Definición del backend para Render.
+#
+# Render lee este archivo y crea el servicio solo ("Blueprint"). Usa el Dockerfile
+# que ya existe en backend/, así que no hay nada distinto entre lo que corrés en
+# tu máquina y lo que corre en la nube.
+#
+# Región Ohio a propósito: la base de datos en Neon está en us-east-2 (Ohio). Cada
+# pedido hace varias consultas, así que tener el servidor al lado de la base es lo
+# que hace que el panel se sienta rápido.
+
+services:
+  - type: web
+    name: latorre-api
+    runtime: docker
+    repo: # se completa solo al conectar el repositorio desde Render
+    rootDir: backend
+    dockerfilePath: ./Dockerfile
+    plan: free
+    region: ohio
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      # Evita que se vuelvan a crear las 3 propiedades de ejemplo.
+      - key: SEED_DEMO_DATA
+        value: "false"
+      # Los secretos NO van acá: se cargan a mano en el panel de Render.
+      # `sync: false` es lo que le dice a Render que los pida en vez de esperarlos
+      # de este archivo, para que nunca terminen escritos en el repositorio.
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: CORS_ORIGIN
+        sync: false
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false

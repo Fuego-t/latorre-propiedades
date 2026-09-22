@@ -1,0 +1,165 @@
+// Latorre Propiedades - Prisma schema
+// PostgreSQL + Prisma ORM
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum OperationType {
+  SALE
+  COMMERCIAL_RENT
+  RESIDENTIAL_RENT
+}
+
+enum PropertyType {
+  HOUSE
+  APARTMENT
+  COMMERCIAL_UNIT
+  OFFICE
+  LAND
+  FIELD
+  COUNTRY_HOUSE
+  OTHER
+}
+
+enum PropertyStatus {
+  AVAILABLE
+  RESERVED
+  SOLD
+  RENTED
+  PAUSED
+  HIDDEN
+}
+
+enum Currency {
+  USD
+  ARS
+}
+
+enum AdminRole {
+  OWNER
+  AGENT
+}
+
+enum LeadOperation {
+  RENT
+  SELL
+  BUY
+}
+
+model AdminUser {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         AdminRole @default(AGENT)
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Location {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  // Centro sugerido para el mapa cuando se filtra por esta localidad
+  latitude  Float
+  longitude Float
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+}
+
+model Property {
+  id     String @id @default(cuid())
+  code   String @unique
+
+  title         String
+  operationType OperationType
+  propertyType  PropertyType
+  status        PropertyStatus @default(AVAILABLE)
+  featured      Boolean        @default(false)
+  isDemo        Boolean        @default(false)
+
+  price    Decimal?
+  currency Currency
+  expenses Decimal?
+  priceNote String?
+
+  location      String
+  neighborhood  String?
+  exactAddress  String
+
+  // Coordenadas reales (uso interno, nunca expuestas tal cual al público en propiedades residenciales)
+  latitude  Float
+  longitude Float
+
+  // Coordenadas públicas: iguales a las reales si showExactLocation=true,
+  // o con jitter aleatorio aplicado si es residencial y showExactLocation=false
+  publicLatitude    Float?
+  publicLongitude   Float?
+  showExactLocation Boolean @default(false)
+
+  coveredArea Float?
+  totalArea   Float?
+  front       Float?
+  depth       Float?
+  rooms       Int?
+  bedrooms    Int?
+  bathrooms   Int?
+  age         Int?
+
+  garage    Boolean @default(false)
+  yard      Boolean @default(false)
+  pool      Boolean @default(false)
+  grill     Boolean @default(false)
+  quincho   Boolean @default(false)
+  gallery   Boolean @default(false)
+  terrace   Boolean @default(false)
+  services  Json?
+
+  description String
+  features    Json?
+
+  // [{ url, publicId, width, height, order, isMain }]
+  images Json @default("[]")
+
+  views     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  leads Lead[]
+
+  @@index([status, operationType])
+  @@index([location])
+  @@index([propertyType])
+}
+
+// Cliente potencial: se genera cuando alguien completa el panel de "Agendar cita"
+// en el sitio público (antes de ir a WhatsApp). Queda visible para el equipo en
+// /admin/clientes.
+model Lead {
+  id            String        @id @default(cuid())
+  name          String
+  // @default("") en vez de obligatorio "a secas": así, si ya hay registros viejos cargados
+  // en la base de datos (de antes de agregar este campo), la migración no falla por no
+  // saber qué poner ahí. El teléfono igual queda exigido para las cargas nuevas porque el
+  // formulario del sitio y la validación del backend no dejan enviar el panel sin completarlo.
+  phone         String        @default("")
+  email         String?
+  // Tipo de propiedad de interés (lista fija de la UI, ver LEAD_INTEREST_OPTIONS en el frontend)
+  interest      String
+  operation     LeadOperation
+
+  property      Property? @relation(fields: [propertyId], references: [id], onDelete: SetNull)
+  propertyId    String?
+  // Copia del título al momento de la consulta, por si la propiedad se borra después
+  propertyTitle String?
+
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+}

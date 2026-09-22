@@ -1,0 +1,216 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    @apply bg-latorre-cream text-latorre-ink antialiased;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  }
+
+  /* `width: 100%` es imprescindible: sin esto, al ser hijo directo de un contenedor
+     flex en columna, se encoge al tamaño de su contenido en vez de ocupar el ancho
+     disponible (esto era lo que colapsaba el mapa a 0px de ancho). Sin límite de
+     ancho máximo a propósito: tiene que ocupar toda la pantalla siempre, incluso
+     en monitores ultrawide/curvos grandes (34" y más). */
+  .app-shell {
+    width: 100%;
+  }
+
+  ::selection {
+    background-color: theme('colors.latorre.gold');
+    color: theme('colors.latorre.dark');
+  }
+
+  :focus-visible {
+    outline: 2px solid theme('colors.latorre.gold');
+    outline-offset: 2px;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-full bg-latorre-dark px-5 py-2.5 text-sm font-medium text-white shadow-card transition hover:bg-latorre transition-colors hover:shadow-card-hover active:scale-[0.98];
+  }
+
+  .btn-whatsapp {
+    @apply inline-flex items-center justify-center gap-2 rounded-full bg-[#25D366] px-5 py-2.5 text-sm font-medium text-white shadow-card transition hover:brightness-95 active:scale-[0.98];
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 rounded-full border border-latorre-dark/15 bg-white px-5 py-2.5 text-sm font-medium text-latorre-ink shadow-sm transition hover:border-latorre-gold hover:text-latorre-dark active:scale-[0.98];
+  }
+
+  .chip {
+    @apply inline-flex items-center gap-1.5 rounded-full border border-latorre-dark/10 bg-white px-3 py-1 text-xs font-medium text-latorre-ink/80;
+  }
+
+  .card-surface {
+    @apply rounded-xl2 border border-latorre-dark/5 bg-white shadow-card;
+  }
+}
+
+
+@layer utilities {
+  /* Carrusel de fotos: se desliza con el dedo, pero sin la barra de scroll a la vista. */
+  .scrollbar-none {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* Leaflet: controles con estética consistente con el resto de la app (bajo contraste, bordes suaves) */
+.leaflet-container {
+  font-family: 'Inter', system-ui, sans-serif;
+  background: #f5f3ee;
+  /* IMPORTANTE: sin esto, los paneles internos de Leaflet (marcadores, popups, etc. usan
+     z-index de hasta 700 en su propio CSS) no quedan "contenidos" dentro del mapa, y pueden
+     terminar dibujándose por ENCIMA de elementos de la página que están fuera del mapa (como
+     la tarjeta de vista previa de una propiedad), aunque esos elementos tengan su propio
+     z-index y estén más adelante en el HTML. Al ponerle z-index a este contenedor, todo lo de
+     adentro queda "encerrado" en su propia capa y no puede tapar nada de afuera. */
+  position: relative;
+  z-index: 0;
+}
+
+/* Tailwind Preflight le pone `max-width:100%; height:auto` a TODAS las imágenes, lo que rompe
+   el tamaño fijo (256x256) que Leaflet necesita para posicionar los tiles del mapa. Sin esto,
+   los tiles se descargan correctamente pero no se ven pintados en pantalla. */
+.leaflet-container img {
+  max-width: none !important;
+}
+
+.leaflet-control-zoom {
+  border: none !important;
+  border-radius: 0.75rem !important;
+  overflow: hidden;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.12) !important;
+}
+
+.leaflet-popup-content-wrapper {
+  padding: 0;
+  border-radius: 1rem;
+  overflow: hidden;
+  box-shadow: 0 8px 32px -4px rgba(27, 67, 50, 0.28);
+}
+
+@keyframes marker-pop {
+  from {
+    transform: scale(0.4);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.marker-enter {
+  animation: marker-pop 0.28s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+@keyframes skeleton-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.skeleton {
+  @apply animate-pulse rounded-lg bg-latorre-dark/10;
+}
+
+/* Animación de bienvenida (IntroSplash): se muestra 1.85s al entrar al mapa
+   (ver el setTimeout en MapPage.tsx). Sin estas reglas, el <img> del logo no
+   tenía ningún límite de tamaño y se dibujaba a su resolución real de archivo
+   (1364x679px) durante esos 1.85s completos — por eso se veía gigante SIEMPRE,
+   no solo a veces. De paso, al ser un overlay fijo que cubre toda la pantalla
+   con fondo sólido, también tapa cualquier acomodo momentáneo del mapa de
+   fondo mientras carga, en vez de dejarlo asomar. */
+.intro-splash {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: #f5f3ee;
+  animation: intro-splash-fade 1.85s ease forwards;
+}
+
+.intro-splash__glow {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 50% 45%, rgba(212, 175, 55, 0.18), transparent 60%);
+}
+
+.intro-splash__content {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  animation: intro-splash-content 0.6s ease both;
+}
+
+.intro-splash__logo {
+  width: 260px;
+  height: auto;
+  max-width: 65vw;
+}
+
+.intro-splash__line {
+  display: block;
+  width: 64px;
+  height: 2px;
+  border-radius: 2px;
+  background: theme('colors.latorre.gold');
+  animation: intro-splash-line 0.7s 0.25s ease both;
+}
+
+@keyframes intro-splash-content {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes intro-splash-line {
+  from {
+    width: 0;
+    opacity: 0;
+  }
+  to {
+    width: 64px;
+    opacity: 1;
+  }
+}
+
+@keyframes intro-splash-fade {
+  0%,
+  80% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    visibility: hidden;
+  }
+}

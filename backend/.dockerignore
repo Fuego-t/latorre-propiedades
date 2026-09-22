@@ -1,0 +1,10 @@
+# No mandar basura al build de Cloud Run: acelera la subida y, sobre todo,
+# evita que las credenciales locales terminen dentro de la imagen.
+node_modules
+dist
+.env
+.env.local
+*.log
+.git
+.vscode
+prisma/dev.db
