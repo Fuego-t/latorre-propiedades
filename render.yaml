@@ -12,9 +12,11 @@ services:
   - type: web
     name: latorre-api
     runtime: docker
-    repo: # se completa solo al conectar el repositorio desde Render
-    rootDir: backend
-    dockerfilePath: ./Dockerfile
+    # Las dos rutas se cuentan desde la raíz del repositorio. El "contexto" es la
+    # carpeta que ve Docker al construir: tiene que ser backend/, porque el
+    # Dockerfile copia package.json y prisma/ esperando estar parado ahí.
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
     plan: free
     region: ohio
     healthCheckPath: /api/health
