@@ -10,3 +10,6 @@ coverage/
 .vite/
 backend/uploads/
 leads-feature.zip
+
+# Scripts temporales de diagnóstico
+_tmp_*
