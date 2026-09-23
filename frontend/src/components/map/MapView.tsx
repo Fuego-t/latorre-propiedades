@@ -175,7 +175,10 @@ export function MapView({
     const marcador = L.marker([OFICINA.latitud, OFICINA.longitud], {
       icon: oficinaIcon(false),
       title: `${OFICINA.nombre} — ${OFICINA.direccion}`,
-      zIndexOffset: 1000, // por encima de los pines de propiedades
+      // Por DEBAJO de las propiedades y de los globos con el número de cada
+      // grupo. La sede es una referencia, no lo que la persona vino a buscar:
+      // si se superponen, tiene que ganar la propiedad.
+      zIndexOffset: -1000,
     });
     marcador.on('click', onSelectOficina);
     marcador.addTo(map);
