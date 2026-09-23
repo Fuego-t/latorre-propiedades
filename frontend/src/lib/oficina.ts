@@ -9,9 +9,13 @@ export const OFICINA = {
   direccion: 'Av. Rivadavia 112',
   entreCalles: 'entre Alberti y Larrea',
   localidad: 'Coronel Brandsen',
-  // Verificadas con el geocodificador oficial (Georef): "AV RIVADAVIA 112".
-  latitud: -35.170663,
-  longitud: -58.233463,
+  // OJO si alguna vez hay que recalcularlas: Georef ubica el 112 al principio de
+  // la cuadra, pegado a Alberti, y ahí está equivocado. Sobre esta avenida la
+  // numeración BAJA hacia Larrea: el geocodificado inverso de OpenStreetMap dice
+  // que ese punto es el 197. Estas coordenadas son las que OSM reconoce como
+  // "112, Avenida Bernardino Rivadavia", y coinciden con el frente real del local.
+  latitud: -35.17031,
+  longitud: -58.232665,
   foto: '/oficina-latorre.webp',
   color: '#D64545',
 } as const;
