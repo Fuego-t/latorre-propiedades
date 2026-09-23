@@ -121,8 +121,11 @@ function decodificar(texto: string): string {
   const nombres: Record<string, string> = {
     aacute: 'á', eacute: 'é', iacute: 'í', oacute: 'ó', uacute: 'ú', ntilde: 'ñ',
     Aacute: 'Á', Eacute: 'É', Iacute: 'Í', Oacute: 'Ó', Uacute: 'Ú', Ntilde: 'Ñ',
-    uuml: 'ü', amp: '&', quot: '"', apos: "'", lt: '<', gt: '>', nbsp: ' ',
-    ndash: '–', mdash: '—', hellip: '…', sup2: '²', deg: '°', ordm: 'º', ordf: 'ª',
+    uuml: 'ü', Uuml: 'Ü', amp: '&', quot: '"', apos: "'", lt: '<', gt: '>', nbsp: ' ',
+    ndash: '–', mdash: '—', hellip: '…', sup2: '²', sup3: '³', deg: '°', ordm: 'º', ordf: 'ª',
+    bull: '•', middot: '·', iexcl: '¡', iquest: '¿', laquo: '«', raquo: '»',
+    lsquo: '‘', rsquo: '’', ldquo: '“', rdquo: '”', times: '×', frac12: '½', frac14: '¼',
+    euro: '€', copy: '©', reg: '®', trade: '™', plusmn: '±', para: '¶', sect: '§',
   };
   return texto
     .replace(/&#(\d+);/g, (_, n) => String.fromCodePoint(Number(n)))
@@ -154,6 +157,22 @@ function aLineas(html: string): string[] {
 
 /** Corta los títulos de sección que vienen después de la descripción. */
 const ES_SECCION = /^(Comodidades|Ubicaci[oó]n|Propiedades relacionadas|Ver m[aá]s|Compartir)$/i;
+
+/**
+ * Las descripciones del sitio viejo tienen emojis que allá ya se guardaron rotos:
+ * donde iba 🏠 quedó un signo de pregunta suelto (verificado: es el byte 0x3F, no un
+ * problema de codificación nuestro). Al principio de cada renglón eso es siempre un
+ * emoji perdido, así que se saca. Los signos de pregunta del medio de una frase no
+ * se tocan.
+ */
+function limpiarDescripcion(texto: string): string {
+  return decodificar(texto)
+    .split('\n')
+    .map((linea) => linea.replace(/^[?\s]+(?=[A-Za-zÁÉÍÓÚÑáéíóúñ0-9¡¿])/, '').trim())
+    .filter(Boolean)
+    .join('\n')
+    .trim();
+}
 
 interface Ficha {
   id: string;
@@ -217,7 +236,7 @@ function parsearFicha(id: string, html: string): Ficha | null {
   // Descripción: las líneas entre "Acerca de la propiedad" y el título de sección siguiente.
   const resto = iAcerca >= 0 ? lineas.slice(iAcerca + 1) : [];
   const finDescripcion = resto.findIndex((l) => ES_SECCION.test(l));
-  const descripcion = resto.slice(0, finDescripcion > 0 ? finDescripcion : 30).join('\n').trim();
+  const descripcion = limpiarDescripcion(resto.slice(0, finDescripcion > 0 ? finDescripcion : 30).join('\n'));
 
   const iComodidades = lineas.findIndex((l) => /^Comodidades$/i.test(l));
   const comodidades =
@@ -300,7 +319,31 @@ async function subirFotos(ficha: Ficha) {
   return imagenes;
 }
 
+/**
+ * Vuelve a pasar la limpieza de texto sobre las propiedades ya importadas.
+ * Sirve cuando se corrige el limpiador y no se quiere volver a bajar todo
+ * (ni resubir las fotos, que es lo que tarda).
+ */
+async function repararTextos() {
+  const todas = await prisma.property.findMany();
+  const importadas = todas.filter((p) => (p.features as { source?: string } | null)?.source === 'buscadorprop');
+
+  let arregladas = 0;
+  for (const p of importadas) {
+    const limpia = limpiarDescripcion(p.description);
+    if (limpia === p.description) continue;
+    if (!dryRun) await prisma.property.update({ where: { id: p.id }, data: { description: limpia } });
+    arregladas++;
+    console.log(`  ${p.code} "${p.title.slice(0, 28)}"`);
+  }
+
+  console.log(`\n${dryRun ? 'Se arreglarían' : 'Arregladas'}: ${arregladas} de ${importadas.length}`);
+  await prisma.$disconnect();
+}
+
 async function main() {
+  if (process.argv.includes('--reparar')) return repararTextos();
+
   console.log(dryRun ? '· MODO PRUEBA: no se escribe nada en la base\n' : '· Importando de verdad\n');
 
   console.log('Buscando las publicaciones en el sitio…');
@@ -319,12 +362,14 @@ async function main() {
 
   for (const [id, coords] of publicaciones) {
     if (procesadas >= limite) break;
-    procesadas++;
 
+    // Las que ya estaban no gastan cupo: así "--limite 20" son 20 nuevas de verdad
+    // y se puede importar en tandas hasta terminar.
     if (yaImportadas.has(id)) {
       salteadas++;
       continue;
     }
+    procesadas++;
 
     try {
       const html = await bajarTexto(`${SITIO}/propiedad/${id}`);
