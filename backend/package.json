@@ -16,7 +16,8 @@
     "seed": "tsx prisma/seed.ts",
     "create-admin": "tsx src/scripts/createAdmin.ts",
     "lint": "eslint src --ext .ts",
-    "migrate-images": "tsx src/scripts/migrateImagesToCloudinary.ts"
+    "migrate-images": "tsx src/scripts/migrateImagesToCloudinary.ts",
+    "importar": "tsx src/scripts/importarPropiedades.ts"
   },
   "dependencies": {
     "@prisma/client": "^5.20.0",
