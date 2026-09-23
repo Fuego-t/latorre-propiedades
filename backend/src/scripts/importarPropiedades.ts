@@ -270,16 +270,28 @@ function parsearFicha(id: string, html: string): Ficha | null {
 
 // ───────────────────────────── traducción al modelo ─────────────────────────────
 
+function clasificar(texto: string): PropertyType | null {
+  const t = texto.toLowerCase();
+  if (!t.trim()) return null;
+  if (/casa\s*quinta|casaquinta|quinta/.test(t)) return 'COUNTRY_HOUSE';
+  if (/campo|chacra|fracci/.test(t)) return 'FIELD';
+  // "casa" primero: "CASA CON LOCAL EN PB", "CASA + LOTE" y "CASA CON DEPTO
+  // INDEPENDIENTE" son casas, aunque el título nombre al local, al lote o al depto.
+  if (/casa/.test(t)) return 'HOUSE';
+  if (/depto|departamento/.test(t)) return 'APARTMENT';
+  if (/local|galp[oó]n|fondo de comercio/.test(t)) return 'COMMERCIAL_UNIT';
+  if (/oficina/.test(t)) return 'OFFICE';
+  if (/terreno|lote/.test(t)) return 'LAND';
+  return null;
+}
+
+/**
+ * La categoría que publica el sitio ("Casas", "Galpones", "Terrenos") manda sobre
+ * el título, que suele describir la propiedad entera y confunde: una "CASA CON
+ * LOCAL EN PB" está catalogada como Casa, no como Local.
+ */
 function tipoDePropiedad(ficha: Ficha): PropertyType {
-  const texto = `${ficha.categoria} ${ficha.titulo}`.toLowerCase();
-  if (/casa\s*quinta|casaquinta|quinta/.test(texto)) return 'COUNTRY_HOUSE';
-  if (/campo|chacra|fracci/.test(texto)) return 'FIELD';
-  if (/depto|departamento/.test(texto)) return 'APARTMENT';
-  if (/local|galp[oó]n|fondo de comercio/.test(texto)) return 'COMMERCIAL_UNIT';
-  if (/oficina/.test(texto)) return 'OFFICE';
-  if (/terreno|lote/.test(texto)) return 'LAND';
-  if (/casa/.test(texto)) return 'HOUSE';
-  return 'OTHER';
+  return clasificar(ficha.categoria) ?? clasificar(ficha.titulo) ?? 'OTHER';
 }
 
 function tipoDeOperacion(ficha: Ficha, tipo: PropertyType): OperationType {
@@ -341,8 +353,50 @@ async function repararTextos() {
   await prisma.$disconnect();
 }
 
+/**
+ * Corrige el tipo y la operación de lo ya importado, volviendo a leer la ficha
+ * de origen. Toca SÓLO esos dos campos: nada de coordenadas, estado, fotos ni
+ * descripción, porque para entonces ya puede haber ediciones hechas a mano en el
+ * panel y no hay que pisarlas.
+ */
+async function reclasificar() {
+  const todas = await prisma.property.findMany();
+  const importadas = todas.filter((p) => (p.features as { source?: string } | null)?.source === 'buscadorprop');
+
+  let cambiadas = 0;
+  for (const p of importadas) {
+    const datos = p.features as { sourceId?: string } | null;
+    if (!datos?.sourceId) continue;
+
+    try {
+      const ficha = parsearFicha(datos.sourceId, await bajarTexto(`${SITIO}/propiedad/${datos.sourceId}`));
+      if (!ficha) continue;
+
+      const tipo = tipoDePropiedad(ficha);
+      const operacion = tipoDeOperacion(ficha, tipo);
+      if (tipo === p.propertyType && operacion === p.operationType) continue;
+
+      console.log(`  ${p.code} "${p.title.slice(0, 32)}"  ${p.propertyType} -> ${tipo}`);
+      if (!dryRun) {
+        await prisma.property.update({
+          where: { id: p.id },
+          data: { propertyType: tipo, operationType: operacion, features: { ...datos, categoria: ficha.categoria } as never },
+        });
+      }
+      cambiadas++;
+      await dormir(250);
+    } catch (err) {
+      console.error(`  ${p.code}: ${err instanceof Error ? err.message : err}`);
+    }
+  }
+
+  console.log(`\n${dryRun ? 'Se corregirían' : 'Corregidas'}: ${cambiadas} de ${importadas.length}`);
+  await prisma.$disconnect();
+}
+
 async function main() {
   if (process.argv.includes('--reparar')) return repararTextos();
+  if (process.argv.includes('--reclasificar')) return reclasificar();
 
   console.log(dryRun ? '· MODO PRUEBA: no se escribe nada en la base\n' : '· Importando de verdad\n');
 
@@ -437,7 +491,7 @@ async function main() {
           description: ficha.descripcion,
           images: imagenes as never,
           // Queda registrado de dónde vino, para no duplicarla si se corre de nuevo.
-          features: { source: 'buscadorprop', sourceId: id, sourceUrl: `${SITIO}/propiedad/${id}` } as never,
+          features: { source: 'buscadorprop', sourceId: id, sourceUrl: `${SITIO}/propiedad/${id}`, categoria: ficha.categoria } as never,
         },
       });
 
