@@ -7,9 +7,14 @@ import type { Property } from '../../types';
 import { useClusters, type ClusterFeature } from '../../hooks/useClusters';
 import { useFilterStore } from '../../store/useFilterStore';
 import { MapLegend } from './MapLegend';
+import { OFICINA } from '../../lib/oficina';
 
 const HOME_ICON_SVG =
   '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>';
+
+// Estrella: distingue de un vistazo el local de Latorre de las propiedades.
+const STAR_ICON_SVG =
+  '<svg width="15" height="15" viewBox="0 0 24 24" fill="white" stroke="white" stroke-width="1.5" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>';
 
 function pinIcon(color: string, selected: boolean) {
   const scale = selected ? 1.18 : 1;
@@ -24,6 +29,26 @@ function pinIcon(color: string, selected: boolean) {
       </div>`,
     iconSize: [34, 34],
     iconAnchor: [17, 34],
+  });
+}
+
+/**
+ * Pin del local. Es más grande que los de las propiedades y lleva estrella, así
+ * que se distingue incluso para alguien que no ve bien los colores.
+ */
+function oficinaIcon(selected: boolean) {
+  const escala = selected ? 1.15 : 1;
+  return L.divIcon({
+    className: '',
+    html: `
+      <div class="marker-enter" style="width:40px;height:40px;transform:scale(${escala});transform-origin:center bottom;">
+        <div style="width:40px;height:40px;border-radius:50% 50% 50% 0;background:${OFICINA.color};transform:rotate(-45deg);
+          box-shadow:0 4px 10px rgba(0,0,0,0.4);border:3px solid white;display:flex;align-items:center;justify-content:center;">
+          <div style="transform:rotate(45deg);display:flex;">${STAR_ICON_SVG}</div>
+        </div>
+      </div>`,
+    iconSize: [40, 40],
+    iconAnchor: [20, 40],
   });
 }
 
@@ -46,13 +71,24 @@ interface MapViewProps {
   properties: Property[];
   selectedPropertyId: string | null;
   onSelectProperty: (property: Property) => void;
+  /** Se llama al tocar el pin del local. */
+  onSelectOficina: () => void;
+  oficinaSeleccionada?: boolean;
   loading?: boolean;
 }
 
-export function MapView({ properties, selectedPropertyId, onSelectProperty, loading }: MapViewProps) {
+export function MapView({
+  properties,
+  selectedPropertyId,
+  onSelectProperty,
+  onSelectOficina,
+  oficinaSeleccionada = false,
+  loading,
+}: MapViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const markersRef = useRef<Map<string, L.Marker>>(new Map());
+  const oficinaRef = useRef<L.Marker | null>(null);
   const hasFitBoundsRef = useRef(false);
 
   const [bounds, setBounds] = useState<[number, number, number, number] | null>(null);
@@ -128,6 +164,32 @@ export function MapView({ properties, selectedPropertyId, onSelectProperty, load
     map.flyTo([flyTarget.lat, flyTarget.lng], flyTarget.zoom, { duration: 0.85 });
     clearFlyTarget();
   }, [flyTarget, mapReady, clearFlyTarget]);
+
+  // El pin del local va aparte de los clusters a propósito: no se agrupa con las
+  // propiedades y no lo tocan los filtros. La oficina está siempre, se busque lo
+  // que se busque.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapReady) return;
+
+    const marcador = L.marker([OFICINA.latitud, OFICINA.longitud], {
+      icon: oficinaIcon(false),
+      title: `${OFICINA.nombre} — ${OFICINA.direccion}`,
+      zIndexOffset: 1000, // por encima de los pines de propiedades
+    });
+    marcador.on('click', onSelectOficina);
+    marcador.addTo(map);
+    oficinaRef.current = marcador;
+
+    return () => {
+      marcador.remove();
+      oficinaRef.current = null;
+    };
+  }, [mapReady, onSelectOficina]);
+
+  useEffect(() => {
+    oficinaRef.current?.setIcon(oficinaIcon(oficinaSeleccionada));
+  }, [oficinaSeleccionada]);
 
   // Sincroniza los marcadores del DOM con los clusters calculados
   useEffect(() => {

@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Header } from '../components/layout/Header';
 import { IntroSplash } from '../components/layout/IntroSplash';
 import { MapView } from '../components/map/MapView';
 import { FilterPanel } from '../components/filters/FilterPanel';
 import { PropertyPreviewCard } from '../components/property/PropertyPreviewCard';
+import { OficinaCard } from '../components/map/OficinaCard';
 import { useFilterStore } from '../store/useFilterStore';
 import { useProperties } from '../hooks/useProperties';
 import type { Property } from '../types';
@@ -12,7 +13,19 @@ export function MapPage() {
   const filters = useFilterStore((s) => s.filters);
   const { properties, loading, error } = useProperties(filters);
   const [selected, setSelected] = useState<Property | null>(null);
+  const [oficinaAbierta, setOficinaAbierta] = useState(false);
   const [showIntro, setShowIntro] = useState(true);
+
+  // Una tarjeta por vez: abrir una cierra la otra.
+  const abrirPropiedad = useCallback((property: Property) => {
+    setOficinaAbierta(false);
+    setSelected(property);
+  }, []);
+
+  const abrirOficina = useCallback(() => {
+    setSelected(null);
+    setOficinaAbierta(true);
+  }, []);
 
   useEffect(() => {
     const introTimeout = window.setTimeout(() => setShowIntro(false), 1850);
@@ -28,7 +41,9 @@ export function MapPage() {
           <MapView
             properties={properties}
             selectedPropertyId={selected?.id ?? null}
-            onSelectProperty={setSelected}
+            onSelectProperty={abrirPropiedad}
+            onSelectOficina={abrirOficina}
+            oficinaSeleccionada={oficinaAbierta}
             loading={loading}
           />
 
@@ -53,6 +68,7 @@ export function MapPage() {
       <FilterPanel resultCount={properties.length} />
 
       {selected && <PropertyPreviewCard property={selected} onClose={() => setSelected(null)} />}
+      {oficinaAbierta && <OficinaCard onClose={() => setOficinaAbierta(false)} />}
       {showIntro && <IntroSplash />}
     </div>
   );
