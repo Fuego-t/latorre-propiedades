@@ -270,13 +270,21 @@ function parsearFicha(id: string, html: string): Ficha | null {
 
 // ───────────────────────────── traducción al modelo ─────────────────────────────
 
+/** Tipos que son más específicos que "casa" y hay que mirar primero. */
+function clasificarEspecifico(texto: string): PropertyType | null {
+  const t = texto.toLowerCase();
+  if (/casa\s*quinta|casaquinta|quinta|caba[ñn]a/.test(t)) return 'COUNTRY_HOUSE';
+  if (/campo|chacra|fracci/.test(t)) return 'FIELD';
+  return null;
+}
+
 function clasificar(texto: string): PropertyType | null {
   const t = texto.toLowerCase();
   if (!t.trim()) return null;
-  if (/casa\s*quinta|casaquinta|quinta/.test(t)) return 'COUNTRY_HOUSE';
-  if (/campo|chacra|fracci/.test(t)) return 'FIELD';
-  // "casa" primero: "CASA CON LOCAL EN PB", "CASA + LOTE" y "CASA CON DEPTO
-  // INDEPENDIENTE" son casas, aunque el título nombre al local, al lote o al depto.
+  const especifico = clasificarEspecifico(t);
+  if (especifico) return especifico;
+  // "casa" antes que el resto: "CASA CON LOCAL EN PB", "CASA + LOTE" y "CASA CON
+  // DEPTO INDEPENDIENTE" son casas, aunque el título nombre al local, al lote o al depto.
   if (/casa/.test(t)) return 'HOUSE';
   if (/depto|departamento/.test(t)) return 'APARTMENT';
   if (/local|galp[oó]n|fondo de comercio/.test(t)) return 'COMMERCIAL_UNIT';
@@ -286,12 +294,22 @@ function clasificar(texto: string): PropertyType | null {
 }
 
 /**
- * La categoría que publica el sitio ("Casas", "Galpones", "Terrenos") manda sobre
- * el título, que suele describir la propiedad entera y confunde: una "CASA CON
- * LOCAL EN PB" está catalogada como Casa, no como Local.
+ * Cómo se decide el tipo, en orden:
+ *
+ * 1. Lo específico gana esté donde esté. El origen cataloga una "Casa Quinta"
+ *    simplemente como "Casa", y ahí el título es más preciso que la categoría.
+ * 2. Después manda la categoría del sitio ("Casas", "Galpones", "Terrenos"),
+ *    porque el título describe la propiedad entera y confunde: una "CASA CON
+ *    LOCAL EN PB" está catalogada como Casa, no como Local.
+ * 3. Y si no hay categoría, se cae al título.
  */
 function tipoDePropiedad(ficha: Ficha): PropertyType {
-  return clasificar(ficha.categoria) ?? clasificar(ficha.titulo) ?? 'OTHER';
+  return (
+    clasificarEspecifico(`${ficha.categoria} ${ficha.titulo}`) ??
+    clasificar(ficha.categoria) ??
+    clasificar(ficha.titulo) ??
+    'OTHER'
+  );
 }
 
 function tipoDeOperacion(ficha: Ficha, tipo: PropertyType): OperationType {
