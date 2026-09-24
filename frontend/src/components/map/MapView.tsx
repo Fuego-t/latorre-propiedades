@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM, TILE_LAYER_ATTRIBUTION, TILE_LAYER_URL } from '../../lib/map';
+import { DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM, TILE_LAYER_URL } from '../../lib/map';
 import { OPERATION_COLORS } from '../../lib/format';
 import type { Property } from '../../types';
 import { useClusters, type ClusterFeature } from '../../hooks/useClusters';
 import { useFilterStore } from '../../store/useFilterStore';
 import { MapLegend } from './MapLegend';
+import { MapAttribution } from './MapAttribution';
 import { OFICINA } from '../../lib/oficina';
 
 const HOME_ICON_SVG =
@@ -110,10 +111,12 @@ export function MapView({
       center: DEFAULT_MAP_CENTER,
       zoom: DEFAULT_MAP_ZOOM,
       zoomControl: false,
-      attributionControl: true,
+      // La barra de atribución de Leaflet se reemplaza por el botón (i) de
+      // MapAttribution, que muestra el crédito a OpenStreetMap al abrirlo.
+      attributionControl: false,
     });
 
-    L.tileLayer(TILE_LAYER_URL, { attribution: TILE_LAYER_ATTRIBUTION, maxZoom: 19 }).addTo(map);
+    L.tileLayer(TILE_LAYER_URL, { maxZoom: 19 }).addTo(map);
     L.control.zoom({ position: 'bottomright' }).addTo(map);
 
     const updateViewport = () => {
@@ -270,6 +273,11 @@ export function MapView({
 
       <div className="pointer-events-none absolute bottom-4 left-4 z-[500] sm:bottom-6 sm:left-6">
         <MapLegend />
+      </div>
+
+      {/* Al lado de los botones de zoom, que están abajo a la derecha. */}
+      <div className="pointer-events-none absolute bottom-4 right-[58px] z-[500] sm:bottom-6">
+        <MapAttribution />
       </div>
 
       {loading && (

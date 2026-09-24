@@ -1,9 +1,10 @@
 import { useEffect, useRef } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { TILE_LAYER_ATTRIBUTION, TILE_LAYER_URL } from '../../lib/map';
+import { TILE_LAYER_URL } from '../../lib/map';
 import { OPERATION_COLORS } from '../../lib/format';
 import type { OperationType } from '../../types';
+import { MapAttribution } from './MapAttribution';
 
 interface PropertyLocationMapProps {
   latitude: number;
@@ -21,9 +22,10 @@ export function PropertyLocationMap({ latitude, longitude, operationType }: Prop
       center: [latitude, longitude],
       zoom: 14,
       zoomControl: true,
+      attributionControl: false, // se reemplaza por el botón (i)
     });
 
-    L.tileLayer(TILE_LAYER_URL, { attribution: TILE_LAYER_ATTRIBUTION, maxZoom: 19 }).addTo(map);
+    L.tileLayer(TILE_LAYER_URL, { maxZoom: 19 }).addTo(map);
 
     const icon = L.divIcon({
       className: '',
@@ -43,6 +45,11 @@ export function PropertyLocationMap({ latitude, longitude, operationType }: Prop
   }, [latitude, longitude, operationType]);
 
   return (
-    <div ref={containerRef} className="h-72 w-full sm:h-80" role="application" aria-label="Ubicación de la propiedad en el mapa" />
+    <div className="relative">
+      <div ref={containerRef} className="h-72 w-full sm:h-80" role="application" aria-label="Ubicación de la propiedad en el mapa" />
+      <div className="pointer-events-none absolute bottom-3 right-3 z-[500]">
+        <MapAttribution />
+      </div>
+    </div>
   );
 }
