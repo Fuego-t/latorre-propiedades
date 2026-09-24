@@ -44,10 +44,12 @@ export function AcercaDe() {
         aria-expanded={abierto}
         title="Acerca de"
         className={`inline-flex items-center justify-center rounded-full p-2 transition ${
-          abierto ? 'bg-latorre-dark/5 text-latorre-dark' : 'text-latorre-ink/40 hover:bg-latorre-dark/5 hover:text-latorre-dark'
+          abierto ? 'bg-latorre-dark/5 text-latorre-dark' : 'text-latorre-ink/30 hover:bg-latorre-dark/5 hover:text-latorre-dark'
         }`}
       >
-        <Info size={18} />
+        {/* El ícono es chico a propósito, pero el relleno se mantiene: así se ve
+            discreto sin que el área para tocarlo con el dedo quede minúscula. */}
+        <Info size={14} />
       </button>
 
       {abierto && (
