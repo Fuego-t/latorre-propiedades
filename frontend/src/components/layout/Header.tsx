@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { CalendarClock, SlidersHorizontal, ShieldCheck } from 'lucide-react';
 import { useFilterStore } from '../../store/useFilterStore';
 import { ScheduleVisitModal } from '../property/ScheduleVisitModal';
+import { AcercaDe } from './AcercaDe';
 
 export function Header() {
   const setPanelOpen = useFilterStore((s) => s.setPanelOpen);
@@ -48,6 +49,8 @@ export function Header() {
             </span>
           )}
         </button>
+
+        <AcercaDe />
 
         <Link
           to="/admin"

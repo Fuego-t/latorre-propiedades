@@ -7,7 +7,6 @@ import type { Property } from '../../types';
 import { useClusters, type ClusterFeature } from '../../hooks/useClusters';
 import { useFilterStore } from '../../store/useFilterStore';
 import { MapLegend } from './MapLegend';
-import { MapAttribution } from './MapAttribution';
 import { OFICINA } from '../../lib/oficina';
 
 const HOME_ICON_SVG =
@@ -111,8 +110,8 @@ export function MapView({
       center: DEFAULT_MAP_CENTER,
       zoom: DEFAULT_MAP_ZOOM,
       zoomControl: false,
-      // La barra de atribución de Leaflet se reemplaza por el botón (i) de
-      // MapAttribution, que muestra el crédito a OpenStreetMap al abrirlo.
+      // Sin la barra de Leaflet sobre el mapa: el crédito a OpenStreetMap
+      // vive en el botón "Acerca de" del encabezado (ver AcercaDe).
       attributionControl: false,
     });
 
@@ -275,10 +274,6 @@ export function MapView({
         <MapLegend />
       </div>
 
-      {/* Al lado de los botones de zoom, que están abajo a la derecha. */}
-      <div className="pointer-events-none absolute bottom-4 right-[58px] z-[500] sm:bottom-6">
-        <MapAttribution />
-      </div>
 
       {loading && (
         <div className="pointer-events-none absolute left-1/2 top-4 z-[500] -translate-x-1/2 rounded-full bg-white px-4 py-2 text-xs font-medium text-latorre-ink/70 shadow-card">

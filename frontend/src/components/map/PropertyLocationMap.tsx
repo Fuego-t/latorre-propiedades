@@ -4,7 +4,6 @@ import 'leaflet/dist/leaflet.css';
 import { TILE_LAYER_URL } from '../../lib/map';
 import { OPERATION_COLORS } from '../../lib/format';
 import type { OperationType } from '../../types';
-import { MapAttribution } from './MapAttribution';
 
 interface PropertyLocationMapProps {
   latitude: number;
@@ -22,7 +21,8 @@ export function PropertyLocationMap({ latitude, longitude, operationType }: Prop
       center: [latitude, longitude],
       zoom: 14,
       zoomControl: true,
-      attributionControl: false, // se reemplaza por el botón (i)
+      // El crédito del mapa está en el botón "Acerca de" del encabezado.
+      attributionControl: false,
     });
 
     L.tileLayer(TILE_LAYER_URL, { maxZoom: 19 }).addTo(map);
@@ -47,9 +47,6 @@ export function PropertyLocationMap({ latitude, longitude, operationType }: Prop
   return (
     <div className="relative">
       <div ref={containerRef} className="h-72 w-full sm:h-80" role="application" aria-label="Ubicación de la propiedad en el mapa" />
-      <div className="pointer-events-none absolute bottom-3 right-3 z-[500]">
-        <MapAttribution />
-      </div>
     </div>
   );
 }
