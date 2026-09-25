@@ -57,15 +57,6 @@
 }
 
 
-
-/* Ancho de la franja con la foto que acompaña al mapa en pantallas anchas.
-   Vive acá y no en cada componente porque lo necesitan dos: la franja misma y
-   las tarjetas flotantes, que tienen que empezar después de ella para no
-   taparla. Si cambia el ancho, cambia en un solo lugar. */
-:root {
-  --franja-foto: 340px;
-}
-
 @layer utilities {
   /* Carrusel de fotos: se desliza con el dedo, pero sin la barra de scroll a la vista. */
   .scrollbar-none {
