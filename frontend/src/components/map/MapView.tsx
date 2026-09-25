@@ -111,7 +111,7 @@ export function MapView({
       zoom: DEFAULT_MAP_ZOOM,
       zoomControl: false,
       // Sin la barra de Leaflet sobre el mapa: el crédito a OpenStreetMap
-      // vive en el botón "Acerca de" del encabezado (ver AcercaDe).
+      // está en la leyenda, abajo a la izquierda (ver MapLegend).
       attributionControl: false,
     });
 

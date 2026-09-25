@@ -47,6 +47,21 @@ export function PropertyLocationMap({ latitude, longitude, operationType }: Prop
   return (
     <div className="relative">
       <div ref={containerRef} className="h-72 w-full sm:h-80" role="application" aria-label="Ubicación de la propiedad en el mapa" />
+      {/* Esta página se desplaza, así que el crédito va como texto debajo del
+          mapa en vez de flotando encima: no tapa nada y se lee sin tener que
+          abrir nada. */}
+      <p className="px-1 pt-1.5 text-[11px] text-latorre-ink/40">
+        Datos del mapa ©{' '}
+        <a
+          href="https://www.openstreetmap.org/copyright"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="underline underline-offset-2 hover:text-latorre-ink/70"
+        >
+          OpenStreetMap
+        </a>{' '}
+        y sus colaboradores
+      </p>
     </div>
   );
 }
