@@ -1,0 +1,15 @@
+# Las mismas reglas que netlify.toml, pero viajando dentro de la carpeta compilada.
+#
+# netlify.toml sólo se lee cuando Netlify compila desde el repositorio. Si alguna
+# vez se publica a mano la carpeta ya construida, ese archivo no participa y el
+# sitio se quedaría sin la conexión con el backend: el mapa cargaría vacío y
+# recargar en /admin daría 404.
+#
+# Netlify aplica primero lo de netlify.toml y después esto, así que tener las dos
+# copias no genera conflicto: dicen lo mismo.
+
+# Los pedidos a /api van al backend en Render, del lado del servidor.
+/api/*  https://latorre-api.onrender.com/api/:splat  200
+
+# El resto lo resuelve React Router dentro de la misma página.
+/*  /index.html  200
