@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight, Expand } from 'lucide-react';
 import type { PropertyImage } from '../../types';
+import { ANCHO, urlFoto } from '../../lib/imagenes';
 
 interface ImageCarouselProps {
   images: PropertyImage[];
@@ -116,7 +117,7 @@ export function ImageCarousel({
             className="block h-full w-full shrink-0 grow-0 basis-full snap-center snap-always"
           >
             <img
-              src={img.url}
+              src={urlFoto(img.url, ANCHO.tarjeta)}
               alt={`${alt} ${i + 1}`}
               loading={i === 0 ? 'eager' : 'lazy'}
               draggable={false}

@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { Header } from '../components/layout/Header';
 import { Gallery } from '../components/property/Gallery';
+import { ANCHO, urlFoto } from '../lib/imagenes';
 import { WhatsAppButtons } from '../components/property/WhatsAppButtons';
 import { ScheduleVisitModal } from '../components/property/ScheduleVisitModal';
 import { PropertyCard } from '../components/property/PropertyCard';
@@ -117,12 +118,38 @@ export function PropertyDetailPage() {
         {/* Galería principal */}
         {images.length > 0 ? (
           <div className="grid grid-cols-1 gap-2 overflow-hidden rounded-xl2 sm:grid-cols-4 sm:grid-rows-2 sm:gap-2" style={{ maxHeight: '480px' }}>
-            <button className="relative col-span-1 row-span-2 sm:col-span-2" onClick={() => setGalleryIndex(0)}>
-              <img src={mainImage.url} alt={property.title} className="h-64 w-full object-cover sm:h-full" />
+            <button
+              className="relative col-span-1 row-span-2 overflow-hidden bg-latorre-dark/5 sm:col-span-2"
+              onClick={() => setGalleryIndex(0)}
+            >
+              {/* Muchas fotos traídas del sitio viejo son chicas o verticales. Se
+                  muestran enteras (object-contain), sin estirar ni recortar, y el
+                  hueco que sobra lo llena una copia difuminada de la misma foto. */}
+              <img
+                src={urlFoto(mainImage.url, ANCHO.miniatura)}
+                alt=""
+                aria-hidden="true"
+                className="absolute inset-0 h-full w-full scale-110 object-cover blur-xl"
+              />
+              <img
+                src={urlFoto(mainImage.url, ANCHO.principal)}
+                alt={property.title}
+                className="relative h-64 w-full object-contain sm:h-full"
+              />
             </button>
             {gridImages.map((img, i) => (
-              <button key={img.url + i} className="relative hidden sm:block" onClick={() => setGalleryIndex(i + 1)}>
-                <img src={img.url} alt="" className="h-full w-full object-cover" />
+              <button
+                key={img.url + i}
+                className="relative hidden overflow-hidden bg-latorre-dark/5 sm:block"
+                onClick={() => setGalleryIndex(i + 1)}
+              >
+                <img
+                  src={urlFoto(img.url, ANCHO.miniatura)}
+                  alt=""
+                  aria-hidden="true"
+                  className="absolute inset-0 h-full w-full scale-110 object-cover blur-lg"
+                />
+                <img src={urlFoto(img.url, ANCHO.grilla)} alt="" className="relative h-full w-full object-contain" />
                 {i === gridImages.length - 1 && images.length > 5 && (
                   <span className="absolute inset-0 flex items-center justify-center bg-black/50 text-sm font-semibold text-white">
                     +{images.length - 5} fotos

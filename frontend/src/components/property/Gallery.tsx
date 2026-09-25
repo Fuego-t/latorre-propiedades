@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight, X } from 'lucide-react';
 import type { PropertyImage } from '../../types';
+import { ANCHO, urlFoto } from '../../lib/imagenes';
 
 interface GalleryProps {
   images: PropertyImage[];
@@ -88,7 +89,7 @@ export function Gallery({ images, initialIndex = 0, onClose }: GalleryProps) {
         )}
 
         <img
-          src={current.url}
+          src={urlFoto(current.url, ANCHO.pantallaCompleta)}
           alt={`Foto ${index + 1} de ${images.length}`}
           draggable={false}
           className="max-h-[80vh] max-w-full select-none rounded-lg object-contain shadow-2xl"

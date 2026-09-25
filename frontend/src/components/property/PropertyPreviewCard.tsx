@@ -7,6 +7,7 @@ import { OperationBadge } from '../ui/Badge';
 import { WhatsAppButtons } from './WhatsAppButtons';
 import { Gallery } from './Gallery';
 import { ImageCarousel } from './ImageCarousel';
+import { ANCHO, urlFoto } from '../../lib/imagenes';
 
 interface PropertyPreviewCardProps {
   property: Property;
@@ -75,7 +76,7 @@ export function PropertyPreviewCard({ property, onClose }: PropertyPreviewCardPr
                   i === index ? 'border-latorre-gold' : 'border-transparent opacity-70 hover:opacity-100'
                 }`}
               >
-                <img src={img.url} alt="" className="h-full w-full object-cover" />
+                <img src={urlFoto(img.url, ANCHO.miniatura)} alt="" className="h-full w-full object-cover" />
               </button>
             ))}
             {images.length > thumbnails.length && (
