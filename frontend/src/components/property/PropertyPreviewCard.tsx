@@ -29,7 +29,7 @@ export function PropertyPreviewCard({ property, onClose }: PropertyPreviewCardPr
 
   return (
     <div
-      className="fixed inset-x-0 bottom-0 z-[1000] pb-safe-bottom sm:inset-x-auto sm:bottom-6 sm:left-6 sm:w-[380px] lg:left-8"
+      className="fixed inset-x-0 bottom-0 z-[1000] pb-safe-bottom sm:inset-x-auto sm:bottom-6 sm:left-6 sm:w-[380px] lg:left-8 2xl:left-[calc(var(--franja-foto)+4.5rem)]"
       role="dialog"
       aria-label={`Vista previa de ${property.title}`}
     >

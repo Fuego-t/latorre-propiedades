@@ -50,8 +50,23 @@ export function MapPage() {
     <div className="flex h-[100dvh] flex-col overflow-hidden bg-latorre-cream">
       <Header />
 
-      <main className="app-shell relative flex-1 overflow-hidden px-0 sm:px-4 sm:pb-4 lg:px-6">
-        <div className="relative h-full w-full overflow-hidden sm:rounded-xl2 sm:shadow-card">
+      <main className="app-shell relative flex flex-1 gap-4 overflow-hidden px-0 sm:px-4 sm:pb-4 lg:px-6">
+        {/* Franja lateral: aparece sólo cuando sobra ancho (desde 1536 px). En
+            pantallas más chicas el mapa necesita todo el espacio, así que no se
+            muestra. Es hermana del mapa, no está encima: el mapa se angosta y sus
+            controles siguen quedando dentro. */}
+        <aside className="hidden w-[var(--franja-foto)] shrink-0 overflow-hidden rounded-xl2 shadow-card 2xl:block">
+          <img
+            src="/familia-llaves.webp"
+            alt=""
+            aria-hidden="true"
+            /* object-cover recorta lo que sobra en vez de deformar la foto, y
+               object-top deja las caras a la vista en pantallas muy altas. */
+            className="h-full w-full object-cover object-top"
+          />
+        </aside>
+
+        <div className="relative h-full min-w-0 flex-1 overflow-hidden sm:rounded-xl2 sm:shadow-card">
           <MapView
             properties={properties}
             selectedPropertyId={selected?.id ?? null}
