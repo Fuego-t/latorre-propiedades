@@ -5,13 +5,14 @@ import { MapView } from '../components/map/MapView';
 import { FilterPanel } from '../components/filters/FilterPanel';
 import { PropertyPreviewCard } from '../components/property/PropertyPreviewCard';
 import { OficinaCard } from '../components/map/OficinaCard';
+import { ServidorDespertando } from '../components/map/ServidorDespertando';
 import { useFilterStore } from '../store/useFilterStore';
 import { useProperties } from '../hooks/useProperties';
 import type { Property } from '../types';
 
 export function MapPage() {
   const filters = useFilterStore((s) => s.filters);
-  const { properties, loading, error } = useProperties(filters);
+  const { properties, loading, error, demorado } = useProperties(filters);
   const [selected, setSelected] = useState<Property | null>(null);
   const [oficinaAbierta, setOficinaAbierta] = useState(false);
   const [showIntro, setShowIntro] = useState(true);
@@ -31,6 +32,19 @@ export function MapPage() {
     const introTimeout = window.setTimeout(() => setShowIntro(false), 1850);
     return () => window.clearTimeout(introTimeout);
   }, []);
+
+  // El aviso de "conectando" recién sale si la espera se estira. Mostrarlo de
+  // entrada haría parecer lento un sitio que normalmente responde en menos de un
+  // segundo; el umbral está apenas después de que termina la animación del logo.
+  const [tardando, setTardando] = useState(false);
+  useEffect(() => {
+    if (!loading) {
+      setTardando(false);
+      return;
+    }
+    const aviso = window.setTimeout(() => setTardando(true), 2500);
+    return () => window.clearTimeout(aviso);
+  }, [loading]);
 
   return (
     <div className="flex h-[100dvh] flex-col overflow-hidden bg-latorre-cream">
@@ -54,6 +68,8 @@ export function MapPage() {
                 : `${properties.length} ${properties.length === 1 ? 'propiedad encontrada' : 'propiedades encontradas'}`}
             </span>
           </div>
+
+          {demorado && !error && <ServidorDespertando />}
 
           {error && (
             <div className="pointer-events-none absolute inset-x-0 top-16 z-10 flex justify-center px-4">
