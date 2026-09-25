@@ -22,7 +22,7 @@ export function AdminLayout() {
   }
 
   return (
-    <div className="min-h-screen bg-latorre-cream">
+    <div className="flex min-h-screen flex-col bg-latorre-cream">
       <header className="flex items-center justify-between border-b border-latorre-dark/8 bg-white px-4 py-3 pt-safe-top sm:px-6">
         <div className="flex items-center gap-3">
           <button className="sm:hidden" onClick={() => setMobileOpen((v) => !v)} aria-label="Abrir menú">
@@ -42,10 +42,11 @@ export function AdminLayout() {
         </div>
       </header>
 
-      {/* Tope de ancho: en un monitor ancho, sin esto el contenido se estira hasta
-          los 3000 px y las filas quedan con el título pegado a un borde y el dato al
-          otro, con un desierto en el medio. */}
-      <div className="app-shell mx-auto flex w-full max-w-[1600px]">
+      {/* La estructura (encabezado y barra lateral) va pegada a los bordes de la
+          pantalla y ocupa todo el alto. El tope de ancho es sólo para el contenido,
+          más abajo: si se le pone acá, la barra lateral queda flotando en el medio
+          y su columna blanca termina a mitad de pantalla. */}
+      <div className="app-shell flex flex-1">
         <nav
           className={`${
             mobileOpen ? 'block' : 'hidden'
@@ -71,8 +72,12 @@ export function AdminLayout() {
           </ul>
         </nav>
 
-        <main className="min-w-0 flex-1 p-4 sm:p-6 lg:p-8">
-          <Outlet />
+        <main className="flex min-w-0 flex-1 flex-col p-4 sm:p-6 lg:p-8">
+          {/* Acá sí: el contenido no pasa de 1400 px para que las filas no queden
+              con el título en un borde y el dato en el otro. */}
+          <div className="mx-auto flex w-full max-w-[1400px] flex-1 flex-col">
+            <Outlet />
+          </div>
         </main>
       </div>
     </div>

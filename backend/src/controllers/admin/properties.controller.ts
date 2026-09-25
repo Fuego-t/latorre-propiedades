@@ -47,7 +47,9 @@ export const dashboardSummary = asyncHandler(async (_req: Request, res: Response
       }),
       prisma.property.count({ where: { status: 'SOLD' } }),
       prisma.property.count({ where: { status: 'RENTED' } }),
-      prisma.property.findMany({ orderBy: { createdAt: 'desc' }, take: 5 }),
+      // Ocho y no cinco: en el panel ancho la lista comparte fila con las
+      // consultas y con cinco quedaba media tarjeta vacía.
+      prisma.property.findMany({ orderBy: { createdAt: 'desc' }, take: 8 }),
     ]);
 
   res.json({

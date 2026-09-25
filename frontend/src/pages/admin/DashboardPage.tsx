@@ -54,7 +54,7 @@ export function DashboardPage() {
   }, []);
 
   return (
-    <div className="space-y-6">
+    <div className="flex flex-1 flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="font-display text-2xl font-semibold text-latorre-dark">Dashboard</h1>
         <Link to="/admin/propiedades/nueva" className="btn-primary">
@@ -81,8 +81,8 @@ export function DashboardPage() {
 
           {/* En pantalla ancha van lado a lado: el espacio que sobraba ahora muestra
               las consultas, que es lo que conviene mirar todos los días. */}
-          <div className="grid gap-5 xl:grid-cols-2">
-          <div className="card-surface p-5">
+          <div className="grid flex-1 items-stretch gap-5 xl:grid-cols-2">
+          <div className="card-surface flex flex-col p-5">
             <h2 className="mb-3 font-display text-lg font-semibold text-latorre-dark">Últimas propiedades cargadas</h2>
             {recent.length === 0 ? (
               <p className="text-sm text-latorre-ink/50">Todavía no cargaste propiedades.</p>
@@ -105,7 +105,7 @@ export function DashboardPage() {
             )}
           </div>
 
-          <div className="card-surface p-5">
+          <div className="card-surface flex flex-col p-5">
             <div className="mb-3 flex items-center justify-between gap-3">
               <h2 className="font-display text-lg font-semibold text-latorre-dark">Últimas consultas</h2>
               {leads.length > 0 && (
@@ -118,7 +118,7 @@ export function DashboardPage() {
               <p className="text-sm text-latorre-ink/50">Todavía no llegaron consultas desde el sitio.</p>
             ) : (
               <ul className="divide-y divide-latorre-dark/8">
-                {leads.slice(0, 5).map((lead) => (
+                {leads.slice(0, 8).map((lead) => (
                   <li key={lead.id} className="flex items-start justify-between gap-3 py-3">
                     <div className="min-w-0">
                       <p className="truncate text-sm font-medium text-latorre-dark">{lead.name}</p>
