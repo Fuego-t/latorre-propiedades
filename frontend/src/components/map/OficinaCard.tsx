@@ -18,16 +18,16 @@ export function OficinaCard({ onClose }: OficinaCardProps) {
 
   return (
     <div
-      className="fixed inset-x-0 bottom-0 z-[1000] pb-safe-bottom sm:inset-x-auto sm:bottom-6 sm:left-6 sm:w-[380px] lg:left-8"
+      className="fixed inset-x-0 bottom-0 z-[1000] pb-safe-bottom sm:inset-x-auto sm:bottom-6 sm:left-6 sm:w-[380px] lg:left-8 lg:w-[430px] xl:w-[470px] 2xl:w-[520px]"
       role="dialog"
       aria-label="Nuestra oficina"
     >
-      <div className="mx-auto max-h-[78vh] w-full max-w-lg overflow-y-auto rounded-t-2xl bg-white shadow-card-hover sm:max-h-[calc(100vh-8rem)] sm:rounded-xl2">
+      <div className="mx-auto max-h-[78vh] w-full max-w-lg overflow-y-auto sm:max-w-none rounded-t-2xl bg-white shadow-card-hover sm:max-h-[calc(100vh-8rem)] sm:rounded-xl2">
         <div className="relative">
           <img
             src={OFICINA.foto}
             alt={`Frente de ${OFICINA.nombre} en ${OFICINA.direccion}`}
-            className="h-44 w-full object-cover"
+            className="h-44 w-full object-cover lg:h-52 xl:h-56 2xl:h-64"
             width={1000}
             height={544}
           />

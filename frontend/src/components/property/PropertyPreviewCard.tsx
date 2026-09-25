@@ -29,11 +29,11 @@ export function PropertyPreviewCard({ property, onClose }: PropertyPreviewCardPr
 
   return (
     <div
-      className="fixed inset-x-0 bottom-0 z-[1000] pb-safe-bottom sm:inset-x-auto sm:bottom-6 sm:left-6 sm:w-[380px] lg:left-8"
+      className="fixed inset-x-0 bottom-0 z-[1000] pb-safe-bottom sm:inset-x-auto sm:bottom-6 sm:left-6 sm:w-[380px] lg:left-8 lg:w-[430px] xl:w-[470px] 2xl:w-[520px]"
       role="dialog"
       aria-label={`Vista previa de ${property.title}`}
     >
-      <div className="mx-auto max-h-[78vh] w-full max-w-lg overflow-y-auto rounded-t-2xl bg-white shadow-card-hover sm:max-h-[calc(100vh-8rem)] sm:rounded-xl2">
+      <div className="mx-auto max-h-[78vh] w-full max-w-lg overflow-y-auto sm:max-w-none rounded-t-2xl bg-white shadow-card-hover sm:max-h-[calc(100vh-8rem)] sm:rounded-xl2">
         <div className="relative">
           {images.length > 0 ? (
             <ImageCarousel
@@ -42,10 +42,10 @@ export function PropertyPreviewCard({ property, onClose }: PropertyPreviewCardPr
               onIndexChange={setIndex}
               onOpen={(i) => setGalleryIndex(i)}
               alt={property.title}
-              className="h-48 w-full sm:h-44"
+              className="h-48 w-full sm:h-44 lg:h-52 xl:h-56 2xl:h-64"
             />
           ) : (
-            <div className="flex h-48 w-full items-center justify-center bg-latorre-dark/5 text-latorre-ink/30 sm:h-44">
+            <div className="flex h-48 w-full items-center justify-center bg-latorre-dark/5 text-latorre-ink/30 sm:h-44 lg:h-52 xl:h-56 2xl:h-64">
               Sin fotos disponibles
             </div>
           )}
@@ -72,7 +72,7 @@ export function PropertyPreviewCard({ property, onClose }: PropertyPreviewCardPr
                 onClick={() => setIndex(i)}
                 aria-label={`Ver foto ${i + 1}`}
                 aria-current={i === index}
-                className={`h-12 w-12 shrink-0 overflow-hidden rounded-md border-2 transition ${
+                className={`h-12 w-12 shrink-0 overflow-hidden rounded-md border-2 transition lg:h-14 lg:w-14 ${
                   i === index ? 'border-latorre-gold' : 'border-transparent opacity-70 hover:opacity-100'
                 }`}
               >
