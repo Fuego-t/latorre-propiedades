@@ -171,6 +171,43 @@ export function PropertyFormPage() {
     [images]
   );
 
+  /** La propiedad tal como la vería el público, armada con lo cargado hasta ahora. */
+  const propiedadDePrueba = useMemo(
+    () =>
+      ({
+        id: propertyId ?? 'preview',
+        code: code ?? 'PREVIEW',
+        title: form.title || 'Sin título',
+        operationType: form.operationType,
+        propertyType: form.propertyType,
+        status: form.status,
+        featured: form.featured,
+        price: num(form.price) ?? null,
+        currency: form.currency,
+        location: form.location,
+        neighborhood: form.neighborhood,
+        publicLatitude: form.latitude ?? -35.1667,
+        publicLongitude: form.longitude ?? -58.2333,
+        showExactLocation: form.showExactLocation,
+        totalArea: num(form.totalArea) ?? null,
+        bedrooms: num(form.bedrooms) ?? null,
+        bathrooms: num(form.bathrooms) ?? null,
+        garage: form.garage,
+        yard: form.yard,
+        pool: form.pool,
+        grill: form.grill,
+        quincho: form.quincho,
+        gallery: form.gallery,
+        terrace: form.terrace,
+        description: form.description,
+        images,
+        views: 0,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      }) as Property,
+    [form, images, propertyId, code]
+  );
+
   /** Se llama al soltar la foto, no en cada pixel del arrastre. */
   const guardarEncuadre = useCallback(async () => {
     if (!propertyId) return;
@@ -360,7 +397,12 @@ export function PropertyFormPage() {
   if (loading) return <p className="text-sm text-latorre-ink/50">Cargando propiedad…</p>;
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6 pb-20">
+    // En pantalla ancha, el formulario deja de estar solo en el medio: al costado
+    // se ve la tarjeta tal como le va a quedar al público, y se actualiza sola
+    // mientras se completa. El formulario no se ensancha a propósito: un campo de
+    // texto de 1300 px de ancho es incómodo de leer.
+    <div className="grid items-start gap-8 pb-20 xl:grid-cols-[minmax(0,1fr)_320px]">
+      <div className="mx-auto w-full max-w-3xl space-y-6">
       <div>
         <h1 className="font-display text-2xl font-semibold text-latorre-dark">
           {isEdit ? 'Editar propiedad' : 'Cargar propiedad'}
@@ -673,41 +715,7 @@ export function PropertyFormPage() {
 
             <p className="text-sm text-latorre-ink/60">Así se verá la propiedad para el público:</p>
             <div className="max-w-xs">
-              <PropertyCard
-                property={
-                  {
-                    id: propertyId ?? 'preview',
-                    code: code ?? 'PREVIEW',
-                    title: form.title || 'Sin título',
-                    operationType: form.operationType,
-                    propertyType: form.propertyType,
-                    status: form.status,
-                    featured: form.featured,
-                    price: num(form.price) ?? null,
-                    currency: form.currency,
-                    location: form.location,
-                    neighborhood: form.neighborhood,
-                    publicLatitude: form.latitude ?? -35.1667,
-                    publicLongitude: form.longitude ?? -58.2333,
-                    showExactLocation: form.showExactLocation,
-                    totalArea: num(form.totalArea) ?? null,
-                    bedrooms: num(form.bedrooms) ?? null,
-                    bathrooms: num(form.bathrooms) ?? null,
-                    garage: form.garage,
-                    yard: form.yard,
-                    pool: form.pool,
-                    grill: form.grill,
-                    quincho: form.quincho,
-                    gallery: form.gallery,
-                    terrace: form.terrace,
-                    description: form.description,
-                    images,
-                    views: 0,
-                    createdAt: new Date().toISOString(),
-                    updatedAt: new Date().toISOString(),
-                  } as Property
-                }
-              />
+              <PropertyCard property={propiedadDePrueba} />
             </div>
           </div>
         )}
@@ -726,7 +734,18 @@ export function PropertyFormPage() {
             {saving ? 'Guardando…' : 'Guardar propiedad'}
           </button>
         )}
+        </div>
       </div>
+
+      <aside className="hidden xl:block">
+        <div className="sticky top-6 space-y-2">
+          <p className="text-xs font-semibold uppercase tracking-wide text-latorre-ink/45">Cómo se va a ver</p>
+          <PropertyCard property={propiedadDePrueba} />
+          <p className="text-xs leading-snug text-latorre-ink/45">
+            Se actualiza mientras completás. Es la tarjeta del listado y del mapa.
+          </p>
+        </div>
+      </aside>
     </div>
   );
 }

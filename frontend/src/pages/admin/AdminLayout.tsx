@@ -42,7 +42,10 @@ export function AdminLayout() {
         </div>
       </header>
 
-      <div className="app-shell flex">
+      {/* Tope de ancho: en un monitor ancho, sin esto el contenido se estira hasta
+          los 3000 px y las filas quedan con el título pegado a un borde y el dato al
+          otro, con un desierto en el medio. */}
+      <div className="app-shell mx-auto flex w-full max-w-[1600px]">
         <nav
           className={`${
             mobileOpen ? 'block' : 'hidden'
