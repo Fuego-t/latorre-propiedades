@@ -39,3 +39,16 @@ export const ANCHO = {
   principal: 1280,
   pantallaCompleta: 1600,
 } as const;
+
+/**
+ * Traduce el punto elegido a la propiedad `object-position` de CSS.
+ *
+ * Sólo tiene efecto donde la foto se recorta para entrar (object-cover): las
+ * tarjetas del listado y la vista previa del mapa. Si nadie eligió nada, queda
+ * centrada, que es como venía funcionando.
+ */
+export function encuadre(imagen?: { focusX?: number; focusY?: number } | null): string {
+  const x = imagen?.focusX ?? 0.5;
+  const y = imagen?.focusY ?? 0.5;
+  return `${Math.round(x * 100)}% ${Math.round(y * 100)}%`;
+}

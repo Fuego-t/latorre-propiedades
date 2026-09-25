@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight, Expand } from 'lucide-react';
 import type { PropertyImage } from '../../types';
-import { ANCHO, urlFoto } from '../../lib/imagenes';
+import { ANCHO, encuadre, urlFoto } from '../../lib/imagenes';
 
 interface ImageCarouselProps {
   images: PropertyImage[];
@@ -122,6 +122,7 @@ export function ImageCarousel({
               loading={i === 0 ? 'eager' : 'lazy'}
               draggable={false}
               className="h-full w-full object-cover"
+              style={{ objectPosition: encuadre(img) }}
             />
           </button>
         ))}

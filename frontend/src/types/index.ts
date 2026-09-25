@@ -21,6 +21,13 @@ export interface PropertyImage {
   height?: number;
   order: number;
   isMain: boolean;
+  /**
+   * Qué punto de la foto tiene que quedar a la vista donde el espacio es más
+   * chico que la foto (tarjetas del listado, vista previa del mapa). Va de 0 a 1
+   * en cada eje; si no está, se centra.
+   */
+  focusX?: number;
+  focusY?: number;
 }
 
 export interface Property {

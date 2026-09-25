@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { ANCHO, urlFoto } from '../../lib/imagenes';
+import { ANCHO, encuadre, urlFoto } from '../../lib/imagenes';
 import { Bath, BedDouble, Maximize } from 'lucide-react';
 import type { Property } from '../../types';
 import { formatArea, formatPrice, PROPERTY_TYPE_LABELS } from '../../lib/format';
@@ -19,6 +19,7 @@ export function PropertyCard({ property }: { property: Property }) {
             src={urlFoto(mainImage.url, ANCHO.tarjeta)}
             alt={property.title}
             className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
+            style={{ objectPosition: encuadre(mainImage) }}
             loading="lazy"
           />
         ) : (

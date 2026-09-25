@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Check, Sparkles } from 'lucide-react';
 import { api, ApiError } from '../../lib/api';
 import { useToastStore } from '../../store/useToastStore';
 import { LocationPickerMap } from '../../components/admin/LocationPickerMap';
 import { ImageUploader } from '../../components/admin/ImageUploader';
+import { AjustarEncuadre } from '../../components/admin/AjustarEncuadre';
 import { PropertyCard } from '../../components/property/PropertyCard';
 import { OPERATION_LABELS, PROPERTY_TYPE_LABELS, STATUS_LABELS, formatPrice } from '../../lib/format';
 import type { Currency, OperationType, Property, PropertyImage, PropertyStatus, PropertyType } from '../../types';
@@ -151,6 +152,10 @@ export function PropertyFormPage() {
   const [propertyId, setPropertyId] = useState<string | null>(id ?? null);
   const [code, setCode] = useState<string | null>(null);
   const [images, setImages] = useState<PropertyImage[]>([]);
+  // El guardado ocurre al soltar el mouse; sin esta referencia usaría el valor
+  // que existía cuando se creó la función, no el último.
+  const imagesRef = useRef(images);
+  imagesRef.current = images;
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(isEdit);
   // Se prende cuando el usuario intenta guardar; a partir de ahí el cartel de
@@ -158,6 +163,23 @@ export function PropertyFormPage() {
   const [showIssues, setShowIssues] = useState(false);
 
   const issues = useMemo(() => collectIssues(form), [form]);
+
+  // La foto que se ve en la tarjeta y en el mapa: la marcada como principal, o
+  // la primera si ninguna lo está.
+  const imagenPrincipal = useMemo(
+    () => images.find((img) => img.isMain) ?? images[0],
+    [images]
+  );
+
+  /** Se llama al soltar la foto, no en cada pixel del arrastre. */
+  const guardarEncuadre = useCallback(async () => {
+    if (!propertyId) return;
+    try {
+      await api.admin.reorderImages(propertyId, imagesRef.current);
+    } catch (err) {
+      pushToast(err instanceof Error ? err.message : 'No se pudo guardar el encuadre', 'error');
+    }
+  }, [propertyId, pushToast]);
 
   useEffect(() => {
     if (!id) return;
@@ -631,6 +653,24 @@ export function PropertyFormPage() {
 
         {STEPS[step] === 'Preview' && (
           <div className="space-y-4">
+            {imagenPrincipal && (
+              <div className="rounded-xl2 border border-latorre-dark/10 bg-white p-4">
+                <p className="mb-1 text-sm font-semibold text-latorre-dark">Encuadre de la foto principal</p>
+                <p className="mb-3 text-xs text-latorre-ink/55">
+                  En la tarjeta y en el mapa la foto entra recortada. Elegí qué parte se ve.
+                </p>
+                <AjustarEncuadre
+                  imagen={imagenPrincipal}
+                  onChange={(focusX, focusY) =>
+                    setImages((previas) =>
+                      previas.map((img) => (img === imagenPrincipal ? { ...img, focusX, focusY } : img))
+                    )
+                  }
+                  onSoltar={guardarEncuadre}
+                />
+              </div>
+            )}
+
             <p className="text-sm text-latorre-ink/60">Así se verá la propiedad para el público:</p>
             <div className="max-w-xs">
               <PropertyCard
