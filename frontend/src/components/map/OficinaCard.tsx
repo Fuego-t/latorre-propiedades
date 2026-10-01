@@ -18,7 +18,7 @@ export function OficinaCard({ onClose }: OficinaCardProps) {
 
   return (
     <div
-      className="fixed inset-x-0 bottom-0 z-[1000] pb-safe-bottom sm:inset-x-auto sm:bottom-6 sm:left-6 sm:w-[380px] lg:left-8 lg:w-[430px] xl:w-[470px] 2xl:w-[520px]"
+      className="fixed inset-x-0 bottom-0 z-[1000] pb-safe-bottom sm:inset-x-auto sm:bottom-6 sm:left-6 sm:w-[380px] lg:left-8 lg:w-[430px] xl:w-[470px] 2xl:left-[calc(var(--franja-video)+4.5rem)] 2xl:w-[520px]"
       role="dialog"
       aria-label="Nuestra oficina"
     >

@@ -6,6 +6,7 @@ import { FilterPanel } from '../components/filters/FilterPanel';
 import { PropertyPreviewCard } from '../components/property/PropertyPreviewCard';
 import { OficinaCard } from '../components/map/OficinaCard';
 import { ServidorDespertando } from '../components/map/ServidorDespertando';
+import { FranjaVideo } from '../components/map/FranjaVideo';
 import { useFilterStore } from '../store/useFilterStore';
 import { useProperties } from '../hooks/useProperties';
 import type { Property } from '../types';
@@ -33,25 +34,20 @@ export function MapPage() {
     return () => window.clearTimeout(introTimeout);
   }, []);
 
-  // El aviso de "conectando" recién sale si la espera se estira. Mostrarlo de
-  // entrada haría parecer lento un sitio que normalmente responde en menos de un
-  // segundo; el umbral está apenas después de que termina la animación del logo.
-  const [tardando, setTardando] = useState(false);
-  useEffect(() => {
-    if (!loading) {
-      setTardando(false);
-      return;
-    }
-    const aviso = window.setTimeout(() => setTardando(true), 2500);
-    return () => window.clearTimeout(aviso);
-  }, [loading]);
+  // El aviso de "conectando" recién sale si la espera se estira, y de eso se
+  // encarga `demorado` dentro de useProperties: ahí es donde se sabe cuánto
+  // viene tardando el pedido de verdad.
 
   return (
     <div className="flex h-[100dvh] flex-col overflow-hidden bg-latorre-cream">
       <Header />
 
-      <main className="app-shell relative flex-1 overflow-hidden px-0 sm:px-4 sm:pb-4 lg:px-6">
-        <div className="relative h-full w-full overflow-hidden sm:rounded-xl2 sm:shadow-card">
+      <main className="app-shell relative flex flex-1 gap-4 overflow-hidden px-0 sm:px-4 sm:pb-4 lg:px-6">
+        {/* Hermana del mapa y no encima: el mapa se angosta y sus controles
+            siguen quedando adentro. */}
+        <FranjaVideo />
+
+        <div className="relative h-full min-w-0 flex-1 overflow-hidden sm:rounded-xl2 sm:shadow-card">
           <MapView
             properties={properties}
             selectedPropertyId={selected?.id ?? null}

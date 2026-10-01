@@ -57,6 +57,14 @@
 }
 
 
+
+/* Ancho de la franja con el video que acompaña al mapa en pantallas anchas.
+   Vive acá porque lo necesitan dos lugares: la franja misma y las tarjetas
+   flotantes, que arrancan después de ella para no taparla. Un solo número. */
+:root {
+  --franja-video: 340px;
+}
+
 @layer utilities {
   /* Carrusel de fotos: se desliza con el dedo, pero sin la barra de scroll a la vista. */
   .scrollbar-none {
