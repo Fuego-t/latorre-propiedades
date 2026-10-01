@@ -1,15 +1,9 @@
 {
   "hosting": {
+    "site": "latorre-propiedades",
     "public": "frontend/dist",
     "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
     "rewrites": [
-      {
-        "source": "/api/**",
-        "run": {
-          "serviceId": "latorre-api",
-          "region": "us-east1"
-        }
-      },
       {
         "source": "**",
         "destination": "/index.html"
@@ -31,6 +25,27 @@
           {
             "key": "Cache-Control",
             "value": "no-cache"
+          }
+        ]
+      },
+      {
+        "source": "**",
+        "headers": [
+          {
+            "key": "X-Content-Type-Options",
+            "value": "nosniff"
+          },
+          {
+            "key": "X-Frame-Options",
+            "value": "SAMEORIGIN"
+          },
+          {
+            "key": "Referrer-Policy",
+            "value": "strict-origin-when-cross-origin"
+          },
+          {
+            "key": "Permissions-Policy",
+            "value": "geolocation=(self), camera=(), microphone=(), payment=()"
           }
         ]
       }
