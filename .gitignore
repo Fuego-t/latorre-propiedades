@@ -13,3 +13,6 @@ leads-feature.zip
 
 # Scripts temporales de diagnóstico
 _tmp_*
+
+# Caché de compilación de TypeScript
+*.tsbuildinfo
