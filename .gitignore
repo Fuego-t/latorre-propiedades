@@ -16,3 +16,6 @@ _tmp_*
 
 # Caché de compilación de TypeScript
 *.tsbuildinfo
+
+# Caché de despliegue de Firebase
+.firebase/
