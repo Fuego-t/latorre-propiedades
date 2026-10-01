@@ -62,7 +62,7 @@ export function FranjaVideo() {
       aria-label="Video institucional de Latorre Propiedades"
     >
       {menosMovimiento ? (
-        <img src="/video-latorre-poster.jpg" alt="" className="h-full w-full object-cover" />
+        <img src="/video-latorre-v2-poster.jpg" alt="" className="h-full w-full object-cover" />
       ) : (
         <video
           ref={video}
@@ -72,16 +72,16 @@ export function FranjaVideo() {
           loop
           playsInline
           autoPlay
-          poster="/video-latorre-poster.jpg"
-          // No se precarga: la franja no aparece en pantallas chicas, y bajar
-          // 3 MB que nadie va a ver sería regalar datos del visitante.
-          preload="none"
+          poster="/video-latorre-v2-poster.jpg"
+          // En pantallas chicas la franja no se muestra, así que el navegador
+          // tampoco baja el video. Donde sí se ve, conviene que vaya buscándolo.
+          preload="metadata"
           className="h-full w-full object-cover"
           tabIndex={-1}
           aria-hidden="true"
         >
-          <source src="/video-latorre.webm" type="video/webm" />
-          <source src="/video-latorre.mp4" type="video/mp4" />
+          <source src="/video-latorre-v2.webm" type="video/webm" />
+          <source src="/video-latorre-v2.mp4" type="video/mp4" />
         </video>
       )}
     </aside>
