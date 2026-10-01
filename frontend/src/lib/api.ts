@@ -78,6 +78,8 @@ export const api = {
       operation: string;
       propertyId?: string | null;
       propertyTitle?: string | null;
+      /** Tiene que ser true: el backend rechaza la consulta sin consentimiento. */
+      acceptedPrivacy: true;
     }) => request<{ lead: Lead }>('/leads', { method: 'POST', body: JSON.stringify(payload) }),
   },
   admin: {

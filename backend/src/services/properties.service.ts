@@ -58,8 +58,14 @@ export function toPublicDto(property: Property) {
     publicLatitude,
     publicLongitude,
     isDemo,
+    // `features` es metadata interna: de qué publicación se importó la propiedad,
+    // con el enlace al sitio de origen. No aporta nada al visitante y estaba
+    // saliendo en la respuesta pública, a la vista de cualquiera que mirara la
+    // API. Se saca.
+    features,
     ...rest
   } = property;
+  void features;
 
   const showsExact = property.showExactLocation;
 

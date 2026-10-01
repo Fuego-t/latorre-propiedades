@@ -42,4 +42,10 @@ export const leadInputSchema = z.object({
   operation: leadOperationEnum,
   propertyId: z.string().optional().nullable(),
   propertyTitle: z.string().max(200).optional().nullable(),
+  // Obligatorio y tiene que ser exactamente true: la ley pide consentimiento
+  // expreso, así que no alcanza con que el campo venga presente. Se valida acá y
+  // no sólo en el formulario para que tampoco se pueda saltear llamando a la API.
+  acceptedPrivacy: z.literal(true, {
+    errorMap: () => ({ message: 'Hay que aceptar la política de privacidad para enviar la consulta' }),
+  }),
 });

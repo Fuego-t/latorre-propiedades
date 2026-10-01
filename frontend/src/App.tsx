@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { MapPage } from './pages/MapPage';
 import { PropertyDetailPage } from './pages/PropertyDetailPage';
+import { PrivacidadPage } from './pages/PrivacidadPage';
 import { LoginPage } from './pages/admin/LoginPage';
 import { AdminLayout } from './pages/admin/AdminLayout';
 import { AdminRoute } from './pages/admin/AdminRoute';
@@ -22,6 +23,7 @@ export default function App() {
       <Routes>
         <Route path="/" element={<MapPage />} />
         <Route path="/propiedad/:id" element={<PropertyDetailPage />} />
+        <Route path="/privacidad" element={<PrivacidadPage />} />
 
         <Route path="/admin" element={<AdminEntry />} />
         <Route path="/admin/login" element={<LoginPage />} />

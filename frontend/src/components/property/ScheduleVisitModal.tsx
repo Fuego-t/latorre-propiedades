@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { createPortal } from 'react-dom';
 import { CalendarClock } from 'lucide-react';
 import { api, ApiError } from '../../lib/api';
@@ -24,11 +25,29 @@ export function ScheduleVisitModal({ property, onClose }: ScheduleVisitModalProp
   const [operation, setOperation] = useState<LeadOperation | ''>('');
   const [submitting, setSubmitting] = useState(false);
   const [sent, setSent] = useState(false);
+  const [acepta, setAcepta] = useState(false);
+  /**
+   * Campo trampa: queda oculto para la persona, pero los programas que llenan
+   * formularios automáticamente completan todo lo que encuentran. Si viene con
+   * algo, es un robot y la consulta no se envía.
+   */
+  const [trampa, setTrampa] = useState('');
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!name.trim() || !phone.trim() || !interest || !operation) {
       pushToast('Completá nombre, teléfono, interés y operación para agendar tu cita', 'error');
+      return;
+    }
+    if (!acepta) {
+      pushToast('Para enviar la consulta necesitamos que aceptes la política de privacidad', 'error');
+      return;
+    }
+    // Una persona nunca ve este campo, así que si tiene algo no es una persona.
+    // Se corta en silencio: avisarle al robot que lo detectamos sólo ayuda a que
+    // la próxima vez lo esquive.
+    if (trampa) {
+      setSent(true);
       return;
     }
     setSubmitting(true);
@@ -40,6 +59,7 @@ export function ScheduleVisitModal({ property, onClose }: ScheduleVisitModalProp
         interest,
         operation,
         ...(property ? { propertyId: property.id, propertyTitle: property.title } : {}),
+        acceptedPrivacy: true,
       });
       setSent(true);
     } catch (err) {
@@ -74,7 +94,7 @@ export function ScheduleVisitModal({ property, onClose }: ScheduleVisitModalProp
             </button>
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="relative space-y-4">
             <div className="flex items-center gap-3">
               <div className="rounded-full bg-latorre-gold/15 p-2 text-latorre-gold">
                 <CalendarClock size={20} />
@@ -158,11 +178,48 @@ export function ScheduleVisitModal({ property, onClose }: ScheduleVisitModalProp
               </select>
             </div>
 
+            {/* Invisible para una persona: ni se ve, ni se puede tabular hasta él,
+                ni lo anuncia un lector de pantalla. Los robots que completan
+                formularios automáticamente sí lo llenan, y ahí los detectamos. */}
+            <div className="absolute left-[-9999px]" aria-hidden="true">
+              <label htmlFor="sitio-web-contacto">No completar</label>
+              <input
+                id="sitio-web-contacto"
+                name="sitio-web-contacto"
+                type="text"
+                tabIndex={-1}
+                autoComplete="off"
+                value={trampa}
+                onChange={(e) => setTrampa(e.target.value)}
+              />
+            </div>
+
+            <label className="flex cursor-pointer items-start gap-2.5 rounded-lg bg-latorre-cream/70 p-3">
+              <input
+                type="checkbox"
+                checked={acepta}
+                onChange={(e) => setAcepta(e.target.checked)}
+                className="mt-0.5 h-4 w-4 shrink-0 rounded border-latorre-dark/30 text-latorre-gold"
+              />
+              <span className="text-xs leading-snug text-latorre-ink/75">
+                Acepto que Latorre Propiedades use mis datos para responder esta consulta, según la{' '}
+                <Link
+                  to="/privacidad"
+                  target="_blank"
+                  className="font-medium text-latorre-dark underline underline-offset-2"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  política de privacidad
+                </Link>
+                .
+              </span>
+            </label>
+
             <div className="flex justify-end gap-2 pt-1">
               <button type="button" className="btn-secondary" onClick={onClose}>
                 Cancelar
               </button>
-              <button type="submit" className="btn-primary" disabled={submitting}>
+              <button type="submit" className="btn-primary" disabled={submitting || !acepta}>
                 {submitting ? 'Enviando…' : 'Enviar'}
               </button>
             </div>

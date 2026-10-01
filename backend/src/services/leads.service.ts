@@ -14,6 +14,9 @@ export async function createLead(input: LeadInput) {
       operation: input.operation,
       propertyId: input.propertyId || null,
       propertyTitle: input.propertyTitle || null,
+      // La fecha la pone el servidor, no el navegador: un dato que viene de
+      // afuera se puede falsear, y esto es justamente la prueba.
+      acceptedPrivacyAt: new Date(),
     },
   });
 }

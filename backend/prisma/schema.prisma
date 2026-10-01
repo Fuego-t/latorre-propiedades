@@ -159,6 +159,13 @@ model Lead {
   // Copia del título al momento de la consulta, por si la propiedad se borra después
   propertyTitle String?
 
+  // Cuándo aceptó la política de privacidad. Es la prueba del consentimiento: la
+  // Ley 25.326 exige poder demostrar que la persona autorizó el uso de sus datos,
+  // y sin fecha esa prueba no existe. Es opcional porque las consultas cargadas
+  // antes de pedir el consentimiento no lo tienen, y no se puede inventar una
+  // fecha que nadie dio.
+  acceptedPrivacyAt DateTime?
+
   createdAt DateTime @default(now())
 
   @@index([createdAt])
