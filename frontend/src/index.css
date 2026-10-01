@@ -58,11 +58,11 @@
 
 
 
-/* Ancho de la franja con el video que acompaña al mapa en pantallas anchas.
+/* Ancho de la franja que acompaña al mapa en pantallas anchas.
    Vive acá porque lo necesitan dos lugares: la franja misma y las tarjetas
    flotantes, que arrancan después de ella para no taparla. Un solo número. */
 :root {
-  --franja-video: 340px;
+  --franja-lateral: 340px;
 }
 
 @layer utilities {

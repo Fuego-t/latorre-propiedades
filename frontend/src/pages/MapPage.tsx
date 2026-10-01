@@ -6,7 +6,7 @@ import { FilterPanel } from '../components/filters/FilterPanel';
 import { PropertyPreviewCard } from '../components/property/PropertyPreviewCard';
 import { OficinaCard } from '../components/map/OficinaCard';
 import { ServidorDespertando } from '../components/map/ServidorDespertando';
-import { FranjaVideo } from '../components/map/FranjaVideo';
+import { FranjaLateral } from '../components/map/FranjaLateral';
 import { useFilterStore } from '../store/useFilterStore';
 import { useProperties } from '../hooks/useProperties';
 import type { Property } from '../types';
@@ -45,7 +45,7 @@ export function MapPage() {
       <main className="app-shell relative flex flex-1 gap-4 overflow-hidden px-0 sm:px-4 sm:pb-4 lg:px-6">
         {/* Hermana del mapa y no encima: el mapa se angosta y sus controles
             siguen quedando adentro. */}
-        <FranjaVideo />
+        <FranjaLateral />
 
         <div className="relative h-full min-w-0 flex-1 overflow-hidden sm:rounded-xl2 sm:shadow-card">
           <MapView
