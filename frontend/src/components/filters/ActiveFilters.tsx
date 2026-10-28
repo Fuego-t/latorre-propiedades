@@ -3,7 +3,7 @@ import { formatPrice, OPERATION_LABELS, PROPERTY_TYPE_LABELS } from '../../lib/f
 import { useFilterStore } from '../../store/useFilterStore';
 import type { PropertyFilters } from '../../types';
 
-export function ActiveFilters({ searchTerm, onClearSearch }: { searchTerm: string; onClearSearch: () => void }) {
+export function ActiveFilters({ searchTerm, onClearSearch, compact = false }: { searchTerm: string; onClearSearch: () => void; compact?: boolean }) {
   const { filters, setFilter, clearFilters } = useFilterStore();
   const chips: Array<{ key: keyof PropertyFilters; label: string }> = [];
   if (filters.operationType) chips.push({ key: 'operationType', label: OPERATION_LABELS[filters.operationType] });
@@ -23,10 +23,10 @@ export function ActiveFilters({ searchTerm, onClearSearch }: { searchTerm: strin
   if (!chips.length && !searchTerm) return null;
 
   return (
-    <div className="mt-3 flex flex-wrap items-center gap-2" aria-label="Filtros activos">
+    <div className={compact ? 'mt-1 flex max-w-full items-center gap-2 overflow-x-auto whitespace-nowrap scrollbar-none [&>*]:shrink-0' : 'mt-3 flex flex-wrap items-center gap-2'} aria-label="Filtros activos">
       <span className="mr-1 text-xs font-medium text-latorre-ink/60">Tu búsqueda:</span>
       {searchTerm && (
-        <button type="button" className="chip min-h-9 max-w-full !border-latorre-dark/15" aria-label={`Quitar búsqueda: ${searchTerm}`} onClick={onClearSearch}>
+        <button type="button" className={`chip min-h-9 !border-latorre-dark/15 ${compact ? 'max-w-48' : 'max-w-full'}`} aria-label={`Quitar búsqueda: ${searchTerm}`} onClick={onClearSearch}>
           <span className="truncate">“{searchTerm}”</span> <X size={13} aria-hidden="true" className="shrink-0" />
         </button>
       )}

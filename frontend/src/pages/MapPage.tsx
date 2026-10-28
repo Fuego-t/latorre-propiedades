@@ -48,6 +48,7 @@ export function MapPage() {
     try { localStorage.setItem('latorre-property-view', view); } catch { /* La elección también funciona sin almacenamiento. */ }
     setSelected(null);
     setOficinaAbierta(false);
+    if (view === 'map') window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
   }, [view]);
 
   useEffect(() => {
@@ -96,9 +97,65 @@ export function MapPage() {
       ? 'No se pudieron cargar las publicaciones'
       : `${visibleProperties.length} ${visibleProperties.length === 1 ? 'propiedad encontrada' : 'propiedades encontradas'}`;
 
+  const viewSelector = (
+    <div role="group" aria-label="Vista de propiedades" className={`inline-flex gap-1 rounded-xl border border-latorre-dark/15 bg-white p-1 ${view === 'map' ? 'w-full shrink-0 sm:w-auto' : 'w-full sm:w-auto'}`}>
+      {([['list', LayoutGrid, 'Publicaciones'], ['map', MapIcon, 'Mapa']] as const).map(([mode, Icon, label]) => (
+        <button key={mode} type="button" aria-pressed={view === mode} onClick={() => setView(mode)} className={`inline-flex min-h-10 flex-1 items-center justify-center gap-2 rounded-lg px-3 text-sm font-semibold transition sm:flex-none ${view === mode ? 'bg-latorre-dark text-white shadow-sm' : 'text-latorre-dark hover:bg-latorre-cream'}`}>
+          <Icon size={17} aria-hidden="true" /> {label}
+        </button>
+      ))}
+    </div>
+  );
+
   return (
-    <div className="flex min-h-[100dvh] flex-col bg-latorre-cream">
+    <div className={`explorer-surface flex flex-col ${view === 'map' ? 'explorer-map h-[100dvh] min-h-0 overflow-hidden' : 'min-h-[100dvh]'}`}>
       <Header />
+      {view === 'map' ? (
+        <main className="app-shell flex min-h-0 flex-1 flex-col overflow-hidden px-3 pb-3 sm:px-4 sm:pb-4 lg:px-6">
+          <section aria-labelledby="search-heading" className="shrink-0 py-2">
+            <h1 id="search-heading" className="sr-only">Encontrá tu próxima propiedad en el mapa</h1>
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+              {viewSelector}
+              <div className="min-w-0 flex-1"><SearchToolbar compact searchTerm={searchTerm} onSearch={setSearchTerm} /></div>
+            </div>
+            <ActiveFilters compact searchTerm={searchTerm} onClearSearch={() => setSearchTerm('')} />
+          </section>
+          <section aria-labelledby="results-heading" aria-busy={loading} className="flex min-h-0 min-w-0 flex-1 flex-col">
+            <div className="mb-2 flex shrink-0 flex-wrap items-center justify-between gap-x-3 gap-y-1">
+              <h2 id="results-heading" className="flex items-center gap-2 text-xs font-semibold text-latorre-dark sm:text-sm">
+                <span className="h-1.5 w-1.5 rounded-full bg-latorre-gold" aria-hidden="true" />
+                {hasFilters ? 'Resultados en el mapa' : 'Propiedades en el mapa'}
+              </h2>
+              <span className="hidden h-px flex-1 bg-gradient-to-r from-latorre-gold/30 to-transparent sm:block" aria-hidden="true" />
+              <p role="status" aria-live="polite" className="text-[11px] text-latorre-ink/65 sm:text-xs">{status}</p>
+            </div>
+            <div className="flex min-h-0 flex-1 gap-3 lg:gap-4">
+              <FranjaLateral />
+              <div className="relative isolate min-h-0 min-w-0 flex-1 overflow-hidden rounded-2xl border border-latorre-gold/25 bg-white shadow-card">
+                <MapView properties={loading || error ? [] : visibleProperties} selectedPropertyId={selected?.id ?? null} onSelectProperty={abrirPropiedad} onSelectOficina={abrirOficina} oficinaSeleccionada={oficinaAbierta} loading={loading} />
+                {demorado && !error && (
+                  <div role="status" className="absolute inset-x-3 top-3 z-10 mx-auto flex max-w-sm items-start gap-2 rounded-xl border border-latorre-gold/30 bg-white p-3 text-xs leading-relaxed text-latorre-dark shadow-card">
+                    <Loader2 size={17} className="mt-0.5 shrink-0 animate-spin" aria-hidden="true" />
+                    Estamos cargando las publicaciones. Van a aparecer automáticamente.
+                  </div>
+                )}
+                {error && (
+                  <div role="alert" className="absolute inset-x-3 top-3 z-10 mx-auto max-w-sm rounded-xl border border-red-200 bg-white p-4 shadow-card">
+                    <p className="text-sm font-semibold text-latorre-dark">No pudimos cargar las propiedades</p>
+                    <button type="button" onClick={retry} className="btn-secondary mt-3 !py-2"><RefreshCw size={15} aria-hidden="true" /> Reintentar</button>
+                  </div>
+                )}
+                {!loading && !error && visibleProperties.length === 0 && (
+                  <div className="absolute inset-x-3 top-3 z-10 mx-auto max-w-sm rounded-xl border border-latorre-dark/10 bg-white p-4 shadow-card">
+                    <p className="text-sm font-semibold text-latorre-dark">{hasFilters ? 'No encontramos propiedades con esta búsqueda' : 'Todavía no hay publicaciones disponibles'}</p>
+                    {hasFilters && <button type="button" onClick={clearSearch} className="mt-2 min-h-9 text-xs font-semibold text-latorre-dark underline underline-offset-4">Limpiar búsqueda</button>}
+                  </div>
+                )}
+              </div>
+            </div>
+          </section>
+        </main>
+      ) : (
       <main className="app-shell flex flex-1 flex-col px-4 pb-6 sm:px-6 lg:px-8">
         <section className="pb-5 pt-4 sm:pt-7" aria-labelledby="search-heading">
           <div className="mb-4 flex flex-wrap items-end justify-between gap-3 sm:mb-5 sm:gap-4">
@@ -109,13 +166,7 @@ export function MapPage() {
             </div>
             <div className="w-full shrink-0 sm:w-auto">
               <p className="sr-only text-xs font-medium text-latorre-ink/60 sm:not-sr-only sm:mb-1.5">Elegí cómo explorar</p>
-              <div role="group" aria-label="Vista de propiedades" className="inline-flex w-full gap-1 rounded-xl border border-latorre-dark/15 bg-white p-1 sm:w-auto">
-                {([['list', LayoutGrid, 'Publicaciones'], ['map', MapIcon, 'Mapa']] as const).map(([mode, Icon, label]) => (
-                  <button key={mode} type="button" aria-pressed={view === mode} onClick={() => setView(mode)} className={`inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-lg px-4 text-sm font-semibold transition sm:flex-none ${view === mode ? 'bg-latorre-dark text-white shadow-sm' : 'text-latorre-dark hover:bg-latorre-cream'}`}>
-                    <Icon size={17} aria-hidden="true" /> {label}
-                  </button>
-                ))}
-              </div>
+              {viewSelector}
             </div>
           </div>
           <SearchToolbar searchTerm={searchTerm} onSearch={setSearchTerm} />
@@ -162,7 +213,6 @@ export function MapPage() {
             </div>
           )}
 
-          {view === 'list' ? (
             <>
               {!hasFilters && sort === 'recommended' && !loading && !error && visibleProperties.length > 0 && <p className="mb-4 hidden text-xs text-latorre-ink/60 sm:block">Destacadas primero, seguidas de las publicaciones más recientes.</p>}
               <div className="grid grid-cols-1 gap-5 min-[540px]:grid-cols-2 lg:grid-cols-3 min-[1700px]:grid-cols-4 min-[2300px]:grid-cols-5">
@@ -176,16 +226,9 @@ export function MapPage() {
               )}
               {!filters.currency && <button type="button" onClick={() => setPanelOpen(true)} className="mt-4 min-h-10 text-xs text-latorre-ink/60 underline underline-offset-4">Elegí una moneda en Más filtros para ordenar por precio.</button>}
             </>
-          ) : (
-            <div className="relative flex h-[65dvh] min-h-[360px] gap-4 lg:h-[calc(100dvh-22rem)] lg:min-h-[420px]">
-              <FranjaLateral />
-              <div className="relative h-full min-w-0 flex-1 overflow-hidden rounded-xl2 border border-latorre-dark/10 shadow-card">
-                <MapView properties={loading || error ? [] : visibleProperties} selectedPropertyId={selected?.id ?? null} onSelectProperty={abrirPropiedad} onSelectOficina={abrirOficina} oficinaSeleccionada={oficinaAbierta} loading={loading} />
-              </div>
-            </div>
-          )}
         </section>
       </main>
+      )}
 
       <FilterPanel resultCount={error ? 0 : visibleProperties.length} loading={loading} error={!!error} />
       {view === 'map' && selected && <PropertyPreviewCard property={selected} onClose={() => setSelected(null)} />}

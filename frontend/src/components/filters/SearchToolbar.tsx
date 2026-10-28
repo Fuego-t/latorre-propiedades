@@ -16,9 +16,10 @@ const fallbackLocations: Location[] = [
 interface SearchToolbarProps {
   searchTerm: string;
   onSearch: (value: string) => void;
+  compact?: boolean;
 }
 
-export function SearchToolbar({ searchTerm, onSearch }: SearchToolbarProps) {
+export function SearchToolbar({ searchTerm, onSearch, compact = false }: SearchToolbarProps) {
   const { filters, setFilters, setPanelOpen, activeCount, requestFlyTo } = useFilterStore();
   const [operation, setOperation] = useState(filters.operationType ?? '');
   const [location, setLocation] = useState(filters.location ?? '');
@@ -44,20 +45,54 @@ export function SearchToolbar({ searchTerm, onSearch }: SearchToolbarProps) {
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setFilters({
-      ...filters,
-      operationType: (operation || undefined) as OperationType | undefined,
-      location: location || undefined,
-      propertyType: (propertyType || undefined) as PropertyType | undefined,
-    });
+    if (!compact) {
+      setFilters({
+        ...filters,
+        operationType: (operation || undefined) as OperationType | undefined,
+        location: location || undefined,
+        propertyType: (propertyType || undefined) as PropertyType | undefined,
+      });
+    }
     onSearch(query.trim());
     const coords = Object.fromEntries(locations.map((item) => [item.name, { lat: item.latitude, lng: item.longitude }]));
-    const target = resolveFlyTarget(location || undefined, '', coords);
+    const target = resolveFlyTarget(compact ? filters.location : location || undefined, '', coords);
     if (target) requestFlyTo(target);
   }
 
   const names = [...new Set([...locations.map((item) => item.name), ...(filters.location ? [filters.location] : [])])]
     .sort((a, b) => a.localeCompare(b, 'es'));
+
+  if (compact) {
+    return (
+      <form role="search" aria-label="Buscar propiedades" onSubmit={handleSubmit} className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-1.5 rounded-xl border border-latorre-dark/10 bg-white/95 p-1.5 shadow-sm sm:gap-2">
+        <label htmlFor="map-search-query" className="sr-only">Palabra clave</label>
+        <input
+          id="map-search-query"
+          type="search"
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          placeholder="Localidad, barrio o código"
+          className={`${fieldClass} !border-transparent !bg-latorre-cream/60 !px-2.5 sm:!px-3`}
+        />
+        <button type="submit" aria-label="Buscar" className="btn-primary min-h-11 min-w-11 !rounded-lg !px-3 sm:!px-4">
+          <Search size={17} aria-hidden="true" />
+          <span className="hidden sm:inline">Buscar</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setPanelOpen(true)}
+          aria-label="Más filtros"
+          aria-haspopup="dialog"
+          className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-lg border border-latorre-dark/15 px-2.5 text-sm font-semibold text-latorre-dark transition hover:border-latorre-gold hover:bg-latorre-cream sm:gap-2 sm:px-3"
+        >
+          <SlidersHorizontal size={16} aria-hidden="true" />
+          <span className="sm:hidden">Filtros</span>
+          <span className="hidden sm:inline">Más filtros</span>
+          {activeCount() > 0 && <span className="rounded-full bg-latorre-dark px-1.5 py-0.5 text-[10px] text-white">{activeCount()}</span>}
+        </button>
+      </form>
+    );
+  }
 
   return (
     <form role="search" aria-label="Buscar propiedades" onSubmit={handleSubmit} className="rounded-2xl border border-latorre-dark/10 bg-white p-3 shadow-card sm:p-4">

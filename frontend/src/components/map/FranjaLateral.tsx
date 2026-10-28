@@ -1,87 +1,66 @@
 import { MapPin, Navigation } from 'lucide-react';
 import { OFICINA, estadoOficina, linkComoLlegar } from '../../lib/oficina';
 
-/**
- * Franja vertical al costado del mapa desde 1024px, con ancho adaptable para
- * notebooks y monitores grandes. En celulares queda oculta.
- *
- * El problema de diseño es el hueco: mide entre 220 y 340px por casi toda la
- * altura de la pantalla, o sea algo así como 1 a 4. Ninguna foto tiene esa
- * forma, así que meter una imagen a pantalla completa ahí obliga a recortarle
- * la mitad del ancho y a dejar afuera medio contenido. Por eso la franja es una
- * composición y no una sola imagen:
- *
- * - Arriba la foto, con su proporción original (941x1672). En monitores altos
- *   entra entera, sin recortar a nadie. En pantallas más bajas el tope del 55%
- *   la achica, y ahí sí recorta, pero de arriba y abajo —cielo y vereda— que es
- *   lo que sobra; las caras quedan siempre dentro gracias al punto focal.
- * - Abajo el bloque de marca, que absorbe el alto que queda libre. En un
- *   ultrawide eso son unos 700px: en vez de dejarlos vacíos, llevan el nombre,
- *   la dirección y el estado del local, repartidos con justify-between para que
- *   el espacio sobrante quede entre los dos bloques y no al final.
- */
+/** La foto conserva su proporción completa dentro del alto disponible del mapa. */
 export function FranjaLateral() {
   const estado = estadoOficina();
 
   return (
     <aside
-      className="hidden min-h-0 w-[var(--franja-lateral)] shrink-0 flex-col overflow-hidden rounded-xl2 bg-latorre-dark text-white shadow-card lg:flex"
+      className="relative isolate hidden min-h-0 w-[var(--franja-lateral)] shrink-0 flex-col overflow-hidden rounded-xl2 border border-white/10 bg-latorre-dark text-white shadow-card lg:flex"
       aria-label="Latorre Propiedades"
     >
-      <div className="relative w-full shrink-0 aspect-[941/1672] max-h-[55%]">
-        <img
-          src="/familia-latorre.webp"
-          alt="Una familia recibiendo las llaves de su casa nueva"
-          width={941}
-          height={1672}
-          /* El punto focal al 38% de la altura deja el intercambio de llaves y
-             las caras en el centro del recorte cuando la pantalla es baja. */
-          className="h-full w-full object-cover object-[50%_38%]"
-        />
-        {/* Difumina el corte entre la foto y el bloque de marca. */}
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-20 bg-gradient-to-b from-transparent to-latorre-dark" />
+      <div aria-hidden="true" className="pointer-events-none absolute -bottom-20 -right-20 -z-10 h-64 w-64 rounded-full border border-latorre-gold/15" />
+      <div aria-hidden="true" className="pointer-events-none absolute -bottom-12 -right-12 -z-10 h-48 w-48 rounded-full border border-latorre-gold/10" />
+
+      <div className="relative min-h-0 flex-1 px-3 pt-3">
+        <div
+          className="relative h-full w-full overflow-hidden rounded-xl border border-white/10 bg-white/[0.03]"
+          style={{
+            backgroundImage: 'radial-gradient(circle at 1px 1px, rgba(228, 200, 107, 0.18) 1px, transparent 0)',
+            backgroundSize: '16px 16px',
+          }}
+        >
+          <img
+            src="/familia-latorre.webp"
+            alt="Una familia recibiendo las llaves de su casa nueva"
+            width={941}
+            height={1672}
+            className="h-full w-full object-contain"
+          />
+          <span aria-hidden="true" className="pointer-events-none absolute left-2 top-2 h-5 w-5 rounded-tl-lg border-l border-t border-latorre-gold/65" />
+          <span aria-hidden="true" className="pointer-events-none absolute bottom-2 right-2 h-5 w-5 rounded-br-lg border-b border-r border-latorre-gold/65" />
+        </div>
       </div>
 
-      <div className="flex min-h-0 flex-1 flex-col justify-between gap-4 overflow-y-auto px-4 pb-4 pt-2 2xl:gap-6 2xl:px-5 2xl:pb-6">
-        <div className="shrink-0">
-          <h2 className="font-display text-lg font-semibold leading-tight 2xl:text-xl">{OFICINA.nombre}</h2>
-          <div className="mt-3 h-px w-10 bg-latorre-gold" />
-          <p className="mt-3 text-sm leading-relaxed text-white/70">
-            Casas, departamentos, locales y campos en Coronel Brandsen y alrededores.
-          </p>
+      <div className="relative shrink-0 space-y-3 px-4 py-4">
+        <div>
+          <div aria-hidden="true" className="mb-2 flex items-center gap-2">
+            <span className="h-px w-7 bg-latorre-gold" />
+            <span className="h-1 w-1 rounded-full bg-latorre-gold/80" />
+          </div>
+          <h2 className="font-display text-base font-semibold leading-tight 2xl:text-lg">{OFICINA.nombre}</h2>
         </div>
 
-        <div className="shrink-0 space-y-3">
-          <p className="flex items-start gap-2 text-sm text-white/80">
-            <MapPin size={15} className="mt-0.5 shrink-0 text-latorre-gold" />
-            <span>
-              {OFICINA.direccion}
-              <br />
-              <span className="text-white/55">{OFICINA.localidad}</span>
-            </span>
-          </p>
+        <p className="flex items-start gap-2 text-xs leading-relaxed text-white/80">
+          <MapPin size={14} className="mt-0.5 shrink-0 text-latorre-gold" aria-hidden="true" />
+          <span>{OFICINA.direccion}<br /><span className="text-white/60">{OFICINA.localidad}</span></span>
+        </p>
 
-          <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs font-medium">
-            <span
-              className={`h-2 w-2 shrink-0 rounded-full ${estado.abierto ? 'bg-emerald-400' : 'bg-white/35'}`}
-              aria-hidden="true"
-            />
-            <span className={estado.abierto ? 'text-emerald-300' : 'text-white/55'}>
-              {estado.abierto ? 'Abierto ahora' : 'Cerrado'}
-            </span>
-            <span className="text-white/40">· {estado.detalle}</span>
-          </p>
+        <p className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[11px] leading-4">
+          <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${estado.abierto ? 'bg-emerald-400' : 'bg-white/40'}`} aria-hidden="true" />
+          <span className={estado.abierto ? 'font-medium text-emerald-300' : 'font-medium text-white/65'}>{estado.abierto ? 'Abierto ahora' : 'Cerrado'}</span>
+          <span className="text-white/50">· {estado.detalle}</span>
+        </p>
 
-          <a
-            href={linkComoLlegar()}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-white/20 px-4 py-2 text-sm font-medium text-white transition hover:border-latorre-gold hover:bg-white/5 active:scale-[0.98]"
-          >
-            <Navigation size={14} />
-            Cómo llegar
-          </a>
-        </div>
+        <a
+          href={linkComoLlegar()}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex min-h-9 w-full items-center justify-center gap-2 rounded-full border border-latorre-gold/40 bg-white/5 px-3 py-2 text-xs font-medium text-white transition hover:border-latorre-gold hover:bg-white/10 active:scale-[0.98]"
+        >
+          <Navigation size={13} aria-hidden="true" /> Cómo llegar
+        </a>
       </div>
     </aside>
   );

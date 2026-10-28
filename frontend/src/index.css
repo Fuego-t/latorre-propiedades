@@ -64,6 +64,17 @@
   --franja-lateral: clamp(220px, 20vw, 340px);
 }
 
+.explorer-surface {
+  background-color: theme('colors.latorre.cream');
+  background-image:
+    radial-gradient(ellipse at 100% 0, rgba(201, 162, 39, 0.08), transparent 45%),
+    radial-gradient(ellipse at 0 100%, rgba(45, 106, 79, 0.045), transparent 45%);
+}
+
+.explorer-map > header {
+  flex-shrink: 0;
+}
+
 @layer utilities {
   /* Carrusel de fotos: se desliza con el dedo, pero sin la barra de scroll a la vista. */
   .scrollbar-none {
