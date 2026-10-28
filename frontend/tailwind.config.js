@@ -15,8 +15,8 @@ export default {
         },
       },
       fontFamily: {
-        display: ['"Playfair Display"', 'Georgia', 'serif'],
-        sans: ['"Inter"', 'system-ui', 'sans-serif'],
+        display: ['"Manrope"', 'system-ui', '-apple-system', 'sans-serif'],
+        sans: ['"Manrope"', 'system-ui', '-apple-system', 'sans-serif'],
       },
       boxShadow: {
         card: '0 4px 24px -4px rgba(27, 67, 50, 0.15)',

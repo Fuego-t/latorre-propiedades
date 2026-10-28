@@ -10,8 +10,7 @@
   }
 
   body {
-    @apply bg-latorre-cream text-latorre-ink antialiased;
-    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    @apply bg-latorre-cream font-sans text-latorre-ink antialiased;
   }
 
   /* `width: 100%` es imprescindible: sin esto, al ser hijo directo de un contenedor
@@ -79,7 +78,7 @@
 
 /* Leaflet: controles con estética consistente con el resto de la app (bajo contraste, bordes suaves) */
 .leaflet-container {
-  font-family: 'Inter', system-ui, sans-serif;
+  font-family: theme('fontFamily.sans');
   background: #f5f3ee;
   /* IMPORTANTE: sin esto, los paneles internos de Leaflet (marcadores, popups, etc. usan
      z-index de hasta 700 en su propio CSS) no quedan "contenidos" dentro del mapa, y pueden
