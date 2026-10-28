@@ -2,6 +2,12 @@ import type { Lead, Location, Property, PropertyFilters } from '../types';
 
 const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:4000/api';
 
+interface PropertyPage {
+  items: Property[];
+  total: number;
+  totalPages: number;
+}
+
 class ApiError extends Error {
   status: number;
   details?: unknown;
@@ -47,7 +53,7 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   return data as T;
 }
 
-function buildQuery(filters: PropertyFilters): string {
+function buildQuery(filters: PropertyFilters & { page?: number }): string {
   const params = new URLSearchParams();
   Object.entries(filters).forEach(([key, value]) => {
     if (value !== undefined && value !== null && value !== '') {
@@ -60,8 +66,21 @@ function buildQuery(filters: PropertyFilters): string {
 
 export const api = {
   properties: {
-    list: (filters: PropertyFilters = {}) =>
-      request<{ items: Property[]; total: number }>(`/properties${buildQuery(filters)}`),
+    list: async (filters: PropertyFilters = {}, signal?: AbortSignal) => {
+      const items = new Map<string, Property>();
+      let page = 1;
+      let result: PropertyPage;
+
+      // El mapa necesita todas las páginas juntas para encuadrar también las
+      // propiedades que están lejos, como Miramar, desde la primera carga.
+      do {
+        result = await request<PropertyPage>(`/properties${buildQuery({ ...filters, page })}`, { signal });
+        result.items.forEach((property) => items.set(property.id, property));
+        page++;
+      } while (page <= result.totalPages);
+
+      return { items: [...items.values()], total: result.total };
+    },
     get: (id: string) => request<{ property: Property; related: Property[] }>(`/properties/${id}`),
     registerView: (id: string) => request<void>(`/properties/${id}/view`, { method: 'POST' }),
   },

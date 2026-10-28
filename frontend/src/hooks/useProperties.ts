@@ -21,6 +21,7 @@ function valeReintentar(err: unknown): boolean {
 }
 
 export function useProperties(filters: PropertyFilters) {
+  const [attempt, setAttempt] = useState(0);
   const [properties, setProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -29,6 +30,7 @@ export function useProperties(filters: PropertyFilters) {
 
   useEffect(() => {
     let cancelado = false;
+    const controller = new AbortController();
     setLoading(true);
     setError(null);
     setDemorado(false);
@@ -42,7 +44,7 @@ export function useProperties(filters: PropertyFilters) {
     (async () => {
       for (let intento = 0; ; intento++) {
         try {
-          const res = await api.properties.list(filters);
+          const res = await api.properties.list(filters, controller.signal);
           if (cancelado) return;
           setProperties(res.items);
           setError(null);
@@ -68,10 +70,11 @@ export function useProperties(filters: PropertyFilters) {
 
     return () => {
       cancelado = true;
+      controller.abort();
       clearTimeout(avisoTimer);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [JSON.stringify(filters)]);
+  }, [JSON.stringify(filters), attempt]);
 
-  return { properties, loading, error, demorado };
+  return { properties, loading, error, demorado, retry: () => setAttempt((value) => value + 1) };
 }

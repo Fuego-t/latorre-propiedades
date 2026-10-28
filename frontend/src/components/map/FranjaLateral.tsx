@@ -2,11 +2,10 @@ import { MapPin, Navigation } from 'lucide-react';
 import { OFICINA, estadoOficina, linkComoLlegar } from '../../lib/oficina';
 
 /**
- * Franja vertical al costado del mapa, sólo en pantallas anchas (desde 1536px).
- * En un notebook chico el mapa necesita todo el ancho, y en el celular una
- * franja vertical directamente no entra.
+ * Franja vertical al costado del mapa desde 1024px, con ancho adaptable para
+ * notebooks y monitores grandes. En celulares queda oculta.
  *
- * El problema de diseño es el hueco: mide 340px de ancho por casi toda la
+ * El problema de diseño es el hueco: mide entre 220 y 340px por casi toda la
  * altura de la pantalla, o sea algo así como 1 a 4. Ninguna foto tiene esa
  * forma, así que meter una imagen a pantalla completa ahí obliga a recortarle
  * la mitad del ancho y a dejar afuera medio contenido. Por eso la franja es una
@@ -26,7 +25,7 @@ export function FranjaLateral() {
 
   return (
     <aside
-      className="hidden w-[var(--franja-lateral)] shrink-0 flex-col overflow-hidden rounded-xl2 bg-latorre-dark text-white shadow-card 2xl:flex"
+      className="hidden min-h-0 w-[var(--franja-lateral)] shrink-0 flex-col overflow-hidden rounded-xl2 bg-latorre-dark text-white shadow-card lg:flex"
       aria-label="Latorre Propiedades"
     >
       <div className="relative w-full shrink-0 aspect-[941/1672] max-h-[55%]">
@@ -43,16 +42,16 @@ export function FranjaLateral() {
         <div className="pointer-events-none absolute inset-x-0 bottom-0 h-20 bg-gradient-to-b from-transparent to-latorre-dark" />
       </div>
 
-      <div className="flex min-h-0 flex-1 flex-col justify-between gap-6 px-5 pb-6 pt-2">
-        <div>
-          <h2 className="font-display text-xl font-semibold leading-tight">{OFICINA.nombre}</h2>
+      <div className="flex min-h-0 flex-1 flex-col justify-between gap-4 overflow-y-auto px-4 pb-4 pt-2 2xl:gap-6 2xl:px-5 2xl:pb-6">
+        <div className="shrink-0">
+          <h2 className="font-display text-lg font-semibold leading-tight 2xl:text-xl">{OFICINA.nombre}</h2>
           <div className="mt-3 h-px w-10 bg-latorre-gold" />
           <p className="mt-3 text-sm leading-relaxed text-white/70">
             Casas, departamentos, locales y campos en Coronel Brandsen y alrededores.
           </p>
         </div>
 
-        <div className="space-y-3">
+        <div className="shrink-0 space-y-3">
           <p className="flex items-start gap-2 text-sm text-white/80">
             <MapPin size={15} className="mt-0.5 shrink-0 text-latorre-gold" />
             <span>
@@ -62,7 +61,7 @@ export function FranjaLateral() {
             </span>
           </p>
 
-          <p className="flex items-center gap-2 text-xs font-medium">
+          <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs font-medium">
             <span
               className={`h-2 w-2 shrink-0 rounded-full ${estado.abierto ? 'bg-emerald-400' : 'bg-white/35'}`}
               aria-hidden="true"

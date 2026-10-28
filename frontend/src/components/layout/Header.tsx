@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { CalendarClock, SlidersHorizontal, ShieldCheck } from 'lucide-react';
 import { useFilterStore } from '../../store/useFilterStore';
 import { ScheduleVisitModal } from '../property/ScheduleVisitModal';
@@ -8,6 +8,8 @@ export function Header() {
   const setPanelOpen = useFilterStore((s) => s.setPanelOpen);
   const activeCount = useFilterStore((s) => s.activeCount());
   const [showSchedule, setShowSchedule] = useState(false);
+  const navigate = useNavigate();
+  const location = useLocation();
 
   return (
     <header className="app-shell relative z-30 grid grid-cols-[auto_1fr_auto] items-center gap-3 border-b border-latorre-dark/8 bg-white/95 px-4 pt-safe-top backdrop-blur sm:px-6 lg:px-8">
@@ -27,6 +29,7 @@ export function Header() {
       <div className="flex justify-center">
         <button
           type="button"
+          aria-label="Agendar cita"
           onClick={() => setShowSchedule(true)}
           className="inline-flex items-center justify-center gap-2 rounded-full border border-latorre-gold/40 bg-latorre-gold/10 px-3.5 py-2 text-sm font-medium text-latorre-dark shadow-sm transition hover:border-latorre-gold hover:bg-latorre-gold/20 active:scale-[0.98] sm:px-4"
         >
@@ -37,7 +40,13 @@ export function Header() {
 
       <div className="flex shrink-0 items-center gap-2">
         <button
-          onClick={() => setPanelOpen(true)}
+          type="button"
+          aria-label="Filtros"
+          aria-haspopup="dialog"
+          onClick={() => {
+            if (location.pathname !== '/') navigate('/');
+            setPanelOpen(true);
+          }}
           className="relative inline-flex items-center gap-2 rounded-full border border-latorre-dark/15 bg-white px-3.5 py-2 text-sm font-medium text-latorre-ink shadow-sm transition hover:border-latorre-gold hover:text-latorre-dark active:scale-[0.98] sm:px-4"
         >
           <SlidersHorizontal size={16} />
@@ -52,6 +61,7 @@ export function Header() {
         <Link
           to="/admin"
           title="Acceso administrador"
+          aria-label="Acceso administrador"
           className="inline-flex items-center justify-center rounded-full p-2 text-latorre-ink/40 transition hover:bg-latorre-dark/5 hover:text-latorre-dark"
         >
           <ShieldCheck size={18} />

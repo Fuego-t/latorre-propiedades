@@ -15,6 +15,7 @@ interface FilterState {
   // clearFlyTarget para que no se dispare de nuevo en cada re-render.
   flyTarget: FlyTarget | null;
   setFilter: <K extends keyof PropertyFilters>(key: K, value: PropertyFilters[K]) => void;
+  setFilters: (filters: PropertyFilters) => void;
   clearFilters: () => void;
   setPanelOpen: (open: boolean) => void;
   activeCount: () => number;
@@ -33,9 +34,15 @@ export const useFilterStore = create<FilterState>((set, get) => ({
       filters: {
         ...state.filters,
         [key]: value === '' || value === undefined ? undefined : value,
+        ...(key === 'currency' && !value ? { minPrice: undefined, maxPrice: undefined } : {}),
       },
+      ...(key === 'location' ? { flyTarget: null } : {}),
     })),
-  clearFilters: () => set({ filters: { ...EMPTY_FILTERS } }),
+  setFilters: (filters) => set((state) => ({
+    filters: { ...filters },
+    ...(filters.location !== state.filters.location ? { flyTarget: null } : {}),
+  })),
+  clearFilters: () => set({ filters: { ...EMPTY_FILTERS }, flyTarget: null }),
   setPanelOpen: (open) => set({ isPanelOpen: open }),
   activeCount: () => Object.values(get().filters).filter((v) => v !== undefined && v !== '').length,
   requestFlyTo: (target) => set({ flyTarget: target }),

@@ -28,17 +28,17 @@ export function buildFilterWhere(filters: Filters): Prisma.PropertyWhereInput {
   if (filters.bedrooms) where.bedrooms = { gte: filters.bedrooms };
   if (filters.bathrooms) where.bathrooms = { gte: filters.bathrooms };
 
-  if (filters.minPrice || filters.maxPrice) {
+  if (filters.minPrice !== undefined || filters.maxPrice !== undefined) {
     where.price = {
-      ...(filters.minPrice ? { gte: filters.minPrice } : {}),
-      ...(filters.maxPrice ? { lte: filters.maxPrice } : {}),
+      ...(filters.minPrice !== undefined ? { gte: filters.minPrice } : {}),
+      ...(filters.maxPrice !== undefined ? { lte: filters.maxPrice } : {}),
     };
   }
 
-  if (filters.minArea || filters.maxArea) {
+  if (filters.minArea !== undefined || filters.maxArea !== undefined) {
     where.totalArea = {
-      ...(filters.minArea ? { gte: filters.minArea } : {}),
-      ...(filters.maxArea ? { lte: filters.maxArea } : {}),
+      ...(filters.minArea !== undefined ? { gte: filters.minArea } : {}),
+      ...(filters.maxArea !== undefined ? { lte: filters.maxArea } : {}),
     };
   }
 

@@ -1,293 +1,196 @@
-import { useEffect, useMemo, useState } from 'react';
-import { X } from 'lucide-react';
+import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
+import { RotateCcw, SlidersHorizontal, X } from 'lucide-react';
 import { useFilterStore } from '../../store/useFilterStore';
 import { api } from '../../lib/api';
-import type { Location, OperationType, PropertyType } from '../../types';
+import type { OperationType, PropertyFilters, PropertyType } from '../../types';
 import { OPERATION_LABELS, PROPERTY_TYPE_LABELS } from '../../lib/format';
-import { ARGENTINA_LOCALIDADES, ARGENTINA_PROVINCIAS, type ArgentinaProvincia } from '../../data/argentinaLocalidades';
 import { resolveFlyTarget } from '../../data/argentinaCoordenadas';
 
-const OPERATIONS: OperationType[] = ['SALE', 'COMMERCIAL_RENT', 'RESIDENTIAL_RENT'];
-const PROPERTY_TYPES: PropertyType[] = [
-  'HOUSE',
-  'APARTMENT',
-  'COMMERCIAL_UNIT',
-  'OFFICE',
-  'LAND',
-  'FIELD',
-  'COUNTRY_HOUSE',
-  'OTHER',
-];
-
+const OPERATIONS: OperationType[] = ['SALE', 'RESIDENTIAL_RENT', 'COMMERCIAL_RENT'];
+const PROPERTY_TYPES = Object.keys(PROPERTY_TYPE_LABELS) as PropertyType[];
 const FALLBACK_LOCATIONS = ['Coronel Brandsen', 'Jeppener', 'Gómez'];
+const fieldClass = 'min-h-11 w-full rounded-xl border border-latorre-dark/15 bg-white px-3 py-2.5 text-sm text-latorre-ink outline-none transition focus:border-latorre-gold focus:ring-2 focus:ring-latorre-gold/15';
 
-function FieldLabel({ children }: { children: React.ReactNode }) {
-  return <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-latorre-ink/50">{children}</label>;
+function FieldLabel({ htmlFor, children }: { htmlFor: string; children: ReactNode }) {
+  return <label htmlFor={htmlFor} className="mb-1.5 block text-xs font-semibold text-latorre-ink/70">{children}</label>;
 }
-
-const selectClass =
-  'w-full rounded-lg border border-latorre-dark/15 bg-white px-3 py-2 text-sm text-latorre-ink outline-none transition focus:border-latorre-gold';
 
 interface FilterPanelProps {
   resultCount: number;
+  loading?: boolean;
+  error?: boolean;
 }
 
-export function FilterPanel({ resultCount }: FilterPanelProps) {
-  const { filters, setFilter, clearFilters, isPanelOpen, setPanelOpen, activeCount, requestFlyTo } = useFilterStore();
+export function FilterPanel(props: FilterPanelProps) {
+  const isPanelOpen = useFilterStore((state) => state.isPanelOpen);
+  return isPanelOpen ? <FilterDialog {...props} /> : null;
+}
+
+function FilterDialog({ resultCount, loading = false, error = false }: FilterPanelProps) {
+  const { filters, setFilters, setPanelOpen, requestFlyTo } = useFilterStore();
+  const [draft, setDraft] = useState<PropertyFilters>({ ...filters });
   const [locations, setLocations] = useState<string[]>(FALLBACK_LOCATIONS);
-  // Coordenadas reales de las localidades ya cargadas en la base de datos (Location),
-  // indexadas por nombre. Se usan para mover el mapa con precisión cuando la ciudad
-  // elegida es una de las que ya conocemos (ej: Coronel Brandsen, Jeppener, Gómez).
   const [dbCoords, setDbCoords] = useState<Record<string, { lat: number; lng: number }>>({});
-  // Provincia elegida en el filtro. No se manda al backend: solo se usa acá, del lado
-  // del cliente, para decidir qué ciudades mostrar en el segundo desplegable. Lo que
-  // efectivamente filtra las propiedades sigue siendo `filters.location` (el nombre de
-  // la ciudad/localidad), exactamente como antes.
-  const [province, setProvince] = useState<string>('');
+  const dialogRef = useRef<HTMLDialogElement>(null);
 
   useEffect(() => {
-    api.locations
-      .list()
-      .then((res) => {
-        if (res.locations?.length) {
-          setLocations(res.locations.map((l: Location) => l.name));
-          const coords: Record<string, { lat: number; lng: number }> = {};
-          res.locations.forEach((l: Location) => {
-            coords[l.name] = { lat: l.latitude, lng: l.longitude };
-          });
-          setDbCoords(coords);
-        }
-      })
-      .catch(() => {
-        /* mantiene el fallback si la API todavía no está levantada */
-      });
+    const dialog = dialogRef.current;
+    const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const previousOverflow = document.body.style.overflow;
+    dialog?.showModal();
+    document.body.style.overflow = 'hidden';
+    return () => {
+      dialog?.close();
+      document.body.style.overflow = previousOverflow;
+      previousFocus?.focus({ preventScroll: true });
+    };
   }, []);
 
-  // Ciudades a mostrar en el segundo desplegable:
-  // - Sin provincia elegida: la lista de localidades que ya tenía el sitio (las cargadas
-  //   en la base de datos / el fallback), para no cambiar el comportamiento por defecto.
-  // - Con una provincia elegida: la lista completa de esa provincia (ver
-  //   src/data/argentinaLocalidades.ts). Para Buenos Aires, además se suman las
-  //   localidades que ya están cargadas en la base de datos, por si hay alguna que no
-  //   esté en la lista armada a mano.
-  const citiesForProvince = useMemo(() => {
-    if (!province) return locations;
-    const base = ARGENTINA_LOCALIDADES[province as ArgentinaProvincia] ?? [];
-    const extra = province === 'Buenos Aires' ? locations : [];
-    return Array.from(new Set([...base, ...extra])).sort((a, b) => a.localeCompare(b, 'es'));
-  }, [province, locations]);
+  useEffect(() => {
+    let cancelled = false;
+    api.locations.list().then(({ locations: available }) => {
+      if (cancelled || !available?.length) return;
+      setLocations(available.map((location) => location.name));
+      setDbCoords(Object.fromEntries(available.map((location) => [location.name, { lat: location.latitude, lng: location.longitude }])));
+    }).catch(() => { /* Mantiene localidades habituales si la API no responde. */ });
+    return () => { cancelled = true; };
+  }, []);
 
-  if (!isPanelOpen) return null;
+  const setDraftFilter = <K extends keyof PropertyFilters>(key: K, value: PropertyFilters[K]) => {
+    setDraft((current) => ({ ...current, [key]: value }));
+  };
+  const numericValue = (value: string) => value === '' ? undefined : Number(value);
+  const priceError = draft.minPrice != null && draft.maxPrice != null && draft.minPrice > draft.maxPrice;
+  const areaError = draft.minArea != null && draft.maxArea != null && draft.minArea > draft.maxArea;
+  const needsCurrency = (draft.minPrice != null || draft.maxPrice != null) && !draft.currency;
+  const hasDraftFilters = Object.values(draft).some((value) => value !== undefined && value !== '' && value !== false);
+  const locationOptions = [...new Set([...locations, ...(draft.location ? [draft.location] : [])])].sort((a, b) => a.localeCompare(b, 'es'));
+
+  const apply = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (priceError || areaError || needsCurrency) return;
+    setFilters(draft);
+    const target = resolveFlyTarget(draft.location, '', dbCoords);
+    if (target) requestFlyTo(target);
+    setPanelOpen(false);
+  };
 
   return (
-    <>
-      <div className="fixed inset-0 z-40 bg-black/30 sm:bg-transparent" onClick={() => setPanelOpen(false)} />
-
-      <aside
-        className="fixed inset-x-0 bottom-0 z-50 flex max-h-[85vh] flex-col rounded-t-2xl bg-white pb-safe-bottom shadow-card-hover sm:inset-x-auto sm:bottom-auto sm:right-4 sm:top-24 sm:max-h-[calc(100vh-7rem)] sm:w-96 sm:rounded-xl2 sm:border sm:border-latorre-dark/10 lg:right-8"
-        role="dialog"
-        aria-label="Filtros de búsqueda"
-      >
-        <div className="flex items-center justify-between border-b border-latorre-dark/8 px-5 py-4">
-          <h2 className="font-display text-lg font-semibold text-latorre-dark">Filtros</h2>
-          <button
-            onClick={() => setPanelOpen(false)}
-            className="rounded-full p-1.5 text-latorre-ink/50 transition hover:bg-latorre-dark/5 hover:text-latorre-dark"
-            aria-label="Cerrar filtros"
-          >
-            <X size={18} />
-          </button>
+    <dialog
+      ref={dialogRef}
+      aria-labelledby="property-filters-title"
+      aria-describedby="property-filters-description"
+      className="fixed inset-x-0 bottom-0 top-auto m-0 max-h-[92dvh] w-full max-w-none rounded-t-3xl border-0 bg-white p-0 text-latorre-ink shadow-card-hover backdrop:bg-latorre-dark/35 sm:inset-y-0 sm:left-auto sm:right-0 sm:h-[100dvh] sm:max-h-none sm:w-[440px] sm:rounded-none"
+      onCancel={(event) => { event.preventDefault(); setPanelOpen(false); }}
+      onClick={(event) => { if (event.target === event.currentTarget) setPanelOpen(false); }}
+    >
+      <form onSubmit={apply} className="flex max-h-[92dvh] flex-col sm:h-full sm:max-h-none">
+        <div className="flex shrink-0 items-start justify-between gap-3 border-b border-latorre-dark/10 px-5 py-5 sm:px-6">
+          <div>
+            <p className="mb-1 flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-latorre/80"><SlidersHorizontal size={14} /> Tu búsqueda</p>
+            <h2 id="property-filters-title" className="font-display text-2xl font-semibold text-latorre-dark">Encontrá tu propiedad</h2>
+            <p id="property-filters-description" className="mt-1.5 text-xs leading-relaxed text-latorre-ink/60">Elegí lo que necesitás y aplicá los filtros para ver las publicaciones.</p>
+          </div>
+          <button type="button" autoFocus onClick={() => setPanelOpen(false)} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-latorre-ink/60 transition hover:bg-latorre-cream" aria-label="Cerrar filtros sin aplicar cambios"><X size={20} /></button>
         </div>
 
-        <div className="flex-1 space-y-5 overflow-y-auto px-5 py-4">
-          <div>
-            <FieldLabel>Operación</FieldLabel>
-            <div className="flex flex-wrap gap-2">
-              {OPERATIONS.map((op) => (
-                <button
-                  key={op}
-                  onClick={() => setFilter('operationType', filters.operationType === op ? undefined : op)}
-                  className={`chip transition ${
-                    filters.operationType === op ? '!border-latorre-gold !bg-latorre-dark !text-white' : ''
-                  }`}
-                >
-                  {OPERATION_LABELS[op]}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <FieldLabel>Provincia</FieldLabel>
-            <select
-              className={selectClass}
-              value={province}
-              onChange={(e) => {
-                setProvince(e.target.value);
-                // Al cambiar de provincia, la ciudad elegida antes puede ya no
-                // corresponder — se limpia para evitar un filtro inconsistente.
-                setFilter('location', undefined);
-              }}
-            >
-              <option value="">Todas las provincias</option>
-              {ARGENTINA_PROVINCIAS.map((prov) => (
-                <option key={prov} value={prov}>
-                  {prov}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <FieldLabel>Ciudad</FieldLabel>
-            <select
-              className={selectClass}
-              value={filters.location ?? ''}
-              onChange={(e) => setFilter('location', e.target.value || undefined)}
-            >
-              <option value="">Todas las localidades</option>
-              {citiesForProvince.map((loc) => (
-                <option key={loc} value={loc}>
-                  {loc}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <FieldLabel>Tipo de propiedad</FieldLabel>
-            <select
-              className={selectClass}
-              value={filters.propertyType ?? ''}
-              onChange={(e) => setFilter('propertyType', (e.target.value || undefined) as PropertyType | undefined)}
-            >
-              <option value="">Todos los tipos</option>
-              {PROPERTY_TYPES.map((type) => (
-                <option key={type} value={type}>
-                  {PROPERTY_TYPE_LABELS[type]}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <FieldLabel>Precio</FieldLabel>
-            <div className="grid grid-cols-3 gap-2">
-              <input
-                type="number"
-                placeholder="Mínimo"
-                className={selectClass}
-                value={filters.minPrice ?? ''}
-                onChange={(e) => setFilter('minPrice', e.target.value ? Number(e.target.value) : undefined)}
-              />
-              <input
-                type="number"
-                placeholder="Máximo"
-                className={selectClass}
-                value={filters.maxPrice ?? ''}
-                onChange={(e) => setFilter('maxPrice', e.target.value ? Number(e.target.value) : undefined)}
-              />
-              <select
-                className={selectClass}
-                value={filters.currency ?? ''}
-                onChange={(e) => setFilter('currency', (e.target.value || undefined) as 'USD' | 'ARS' | undefined)}
-              >
-                <option value="">USD/ARS</option>
-                <option value="USD">USD</option>
-                <option value="ARS">ARS</option>
+        <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-5 py-5 sm:px-6">
+          <fieldset className="space-y-4">
+            <legend className="mb-3 text-sm font-semibold text-latorre-dark">¿Qué estás buscando?</legend>
+            <div>
+              <FieldLabel htmlFor="filter-operation">Operación</FieldLabel>
+              <select id="filter-operation" className={fieldClass} value={draft.operationType ?? ''} onChange={(event) => setDraftFilter('operationType', (event.target.value || undefined) as OperationType | undefined)}>
+                <option value="">Todas las operaciones</option>
+                {OPERATIONS.map((operation) => <option key={operation} value={operation}>{OPERATION_LABELS[operation]}</option>)}
               </select>
             </div>
-          </div>
+            <div className="grid grid-cols-1 gap-4 min-[380px]:grid-cols-2">
+              <div>
+                <FieldLabel htmlFor="filter-property-type">Tipo de propiedad</FieldLabel>
+                <select id="filter-property-type" className={fieldClass} value={draft.propertyType ?? ''} onChange={(event) => setDraftFilter('propertyType', (event.target.value || undefined) as PropertyType | undefined)}>
+                  <option value="">Todos los tipos</option>
+                  {PROPERTY_TYPES.map((type) => <option key={type} value={type}>{PROPERTY_TYPE_LABELS[type]}</option>)}
+                </select>
+              </div>
+              <div>
+                <FieldLabel htmlFor="filter-location">Localidad</FieldLabel>
+                <select id="filter-location" className={fieldClass} value={draft.location ?? ''} onChange={(event) => setDraftFilter('location', event.target.value || undefined)}>
+                  <option value="">Todas las localidades</option>
+                  {locationOptions.map((location) => <option key={location} value={location}>{location}</option>)}
+                </select>
+              </div>
+            </div>
+          </fieldset>
 
-          <div className="grid grid-cols-3 gap-2">
-            <div>
-              <FieldLabel>Ambientes</FieldLabel>
-              <input
-                type="number"
-                min={0}
-                className={selectClass}
-                value={filters.rooms ?? ''}
-                onChange={(e) => setFilter('rooms', e.target.value ? Number(e.target.value) : undefined)}
-              />
+          <fieldset className="space-y-3 border-t border-latorre-dark/10 pt-5">
+            <legend className="float-left mb-3 w-full text-sm font-semibold text-latorre-dark">Tu presupuesto</legend>
+            <div className="clear-both">
+              <FieldLabel htmlFor="filter-currency">Moneda</FieldLabel>
+              <select id="filter-currency" className={fieldClass} value={draft.currency ?? ''} aria-invalid={needsCurrency} aria-describedby={needsCurrency ? 'filter-currency-error' : undefined} onChange={(event) => setDraftFilter('currency', (event.target.value || undefined) as PropertyFilters['currency'])}>
+                <option value="">Todas las monedas</option>
+                <option value="USD">Dólares (USD)</option>
+                <option value="ARS">Pesos (ARS)</option>
+              </select>
+              {needsCurrency && <p id="filter-currency-error" role="alert" className="mt-1.5 text-xs text-red-700">Elegí una moneda para comparar los precios.</p>}
             </div>
-            <div>
-              <FieldLabel>Dormitorios</FieldLabel>
-              <input
-                type="number"
-                min={0}
-                className={selectClass}
-                value={filters.bedrooms ?? ''}
-                onChange={(e) => setFilter('bedrooms', e.target.value ? Number(e.target.value) : undefined)}
-              />
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <FieldLabel htmlFor="filter-min-price">Precio desde</FieldLabel>
+                <input id="filter-min-price" type="number" inputMode="decimal" min={0} step="any" placeholder="Sin mínimo" className={fieldClass} value={draft.minPrice ?? ''} aria-invalid={priceError} aria-describedby={priceError ? 'filter-price-error' : undefined} onChange={(event) => setDraftFilter('minPrice', numericValue(event.target.value))} />
+              </div>
+              <div>
+                <FieldLabel htmlFor="filter-max-price">Precio hasta</FieldLabel>
+                <input id="filter-max-price" type="number" inputMode="decimal" min={0} step="any" placeholder="Sin máximo" className={fieldClass} value={draft.maxPrice ?? ''} aria-invalid={priceError} aria-describedby={priceError ? 'filter-price-error' : undefined} onChange={(event) => setDraftFilter('maxPrice', numericValue(event.target.value))} />
+              </div>
             </div>
-            <div>
-              <FieldLabel>Baños</FieldLabel>
-              <input
-                type="number"
-                min={0}
-                className={selectClass}
-                value={filters.bathrooms ?? ''}
-                onChange={(e) => setFilter('bathrooms', e.target.value ? Number(e.target.value) : undefined)}
-              />
-            </div>
-          </div>
+            {priceError && <p id="filter-price-error" role="alert" className="text-xs text-red-700">El precio máximo debe ser igual o mayor al mínimo.</p>}
+            {draft.operationType && draft.operationType !== 'SALE' && <p className="text-xs text-latorre-ink/55">Para alquileres, indicá el precio mensual.</p>}
+          </fieldset>
 
-          <div>
-            <FieldLabel>Superficie (m²)</FieldLabel>
-            <div className="grid grid-cols-2 gap-2">
-              <input
-                type="number"
-                placeholder="Mínima"
-                className={selectClass}
-                value={filters.minArea ?? ''}
-                onChange={(e) => setFilter('minArea', e.target.value ? Number(e.target.value) : undefined)}
-              />
-              <input
-                type="number"
-                placeholder="Máxima"
-                className={selectClass}
-                value={filters.maxArea ?? ''}
-                onChange={(e) => setFilter('maxArea', e.target.value ? Number(e.target.value) : undefined)}
-              />
+          <fieldset className="border-t border-latorre-dark/10 pt-5">
+            <legend className="float-left mb-1 w-full text-sm font-semibold text-latorre-dark">Espacios y superficie</legend>
+            <p className="clear-both mb-3 text-xs text-latorre-ink/55">Las cantidades indican el mínimo que necesitás.</p>
+            <div className="grid grid-cols-3 gap-2">
+              {([['rooms', 'Ambientes'], ['bedrooms', 'Dormitorios'], ['bathrooms', 'Baños']] as const).map(([key, label]) => (
+                <div key={key}>
+                  <FieldLabel htmlFor={`filter-${key}`}>{label}</FieldLabel>
+                  <select id={`filter-${key}`} className={`${fieldClass} !px-2`} value={draft[key] ?? ''} onChange={(event) => setDraftFilter(key, numericValue(event.target.value))}>
+                    <option value="">Todos</option>
+                    {[1, 2, 3, 4, 5, 6].map((count) => <option key={count} value={count}>{count} o más</option>)}
+                    {draft[key] != null && draft[key]! > 6 && <option value={draft[key]}>{draft[key]} o más</option>}
+                  </select>
+                </div>
+              ))}
             </div>
-          </div>
+            <div className="mt-4 grid grid-cols-2 gap-3">
+              <div>
+                <FieldLabel htmlFor="filter-min-area">Superficie desde (m²)</FieldLabel>
+                <input id="filter-min-area" type="number" inputMode="decimal" min={0} step="any" placeholder="Sin mínimo" className={fieldClass} value={draft.minArea ?? ''} aria-invalid={areaError} aria-describedby={areaError ? 'filter-area-error' : undefined} onChange={(event) => setDraftFilter('minArea', numericValue(event.target.value))} />
+              </div>
+              <div>
+                <FieldLabel htmlFor="filter-max-area">Superficie hasta (m²)</FieldLabel>
+                <input id="filter-max-area" type="number" inputMode="decimal" min={0} step="any" placeholder="Sin máximo" className={fieldClass} value={draft.maxArea ?? ''} aria-invalid={areaError} aria-describedby={areaError ? 'filter-area-error' : undefined} onChange={(event) => setDraftFilter('maxArea', numericValue(event.target.value))} />
+              </div>
+            </div>
+            {areaError && <p id="filter-area-error" role="alert" className="mt-2 text-xs text-red-700">La superficie máxima debe ser igual o mayor a la mínima.</p>}
+            <p className="mt-2 text-xs text-latorre-ink/55">Se toma la superficie total de la propiedad.</p>
+          </fieldset>
 
-          <label className="flex cursor-pointer items-center gap-2 text-sm text-latorre-ink">
-            <input
-              type="checkbox"
-              className="h-4 w-4 rounded border-latorre-dark/30 text-latorre-gold focus:ring-latorre-gold"
-              checked={filters.featured ?? false}
-              onChange={(e) => setFilter('featured', e.target.checked || undefined)}
-            />
-            Sólo propiedades destacadas
+          <label className="flex cursor-pointer items-start gap-3 rounded-xl bg-latorre-cream p-4 text-sm text-latorre-dark">
+            <input type="checkbox" className="mt-0.5 h-4 w-4 shrink-0 accent-latorre-dark" checked={draft.featured ?? false} onChange={(event) => setDraftFilter('featured', event.target.checked || undefined)} />
+            <span><span className="block font-medium">Solo propiedades destacadas</span><span className="mt-0.5 block text-xs text-latorre-ink/60">Publicaciones seleccionadas por Latorre.</span></span>
           </label>
         </div>
 
-        <div className="border-t border-latorre-dark/8 px-5 py-4">
-          <p className="mb-3 text-center text-sm font-medium text-latorre-ink/70">
-            {resultCount} {resultCount === 1 ? 'propiedad encontrada' : 'propiedades encontradas'}
-          </p>
-          <div className="flex gap-2">
-            <button className="btn-secondary flex-1" onClick={clearFilters} disabled={activeCount() === 0}>
-              Limpiar filtros
-            </button>
-            <button
-              className="btn-primary flex-1"
-              onClick={() => {
-                // Solo mueve el mapa si hay una ciudad elegida (con o sin provincia
-                // puntual). Si lo único que se usó fueron otros filtros (precio,
-                // ambientes, destacadas, etc.), acá nunca se llama a requestFlyTo y el
-                // mapa se queda exactamente donde estaba.
-                const target = resolveFlyTarget(filters.location, province, dbCoords);
-                if (target) requestFlyTo(target);
-                setPanelOpen(false);
-              }}
-            >
-              Ver resultados
-            </button>
+        <div className="shrink-0 space-y-3 border-t border-latorre-dark/10 bg-white px-5 pb-[max(1rem,env(safe-area-inset-bottom))] pt-4 sm:px-6">
+          <p className="text-center text-xs text-latorre-ink/60">Los cambios se aplican al confirmar.</p>
+          <div className="flex items-center gap-3">
+            <button type="button" className="btn-secondary flex-1 !px-3 disabled:cursor-default disabled:opacity-40" disabled={!hasDraftFilters} onClick={() => setDraft({})}><RotateCcw size={15} /> Limpiar</button>
+            <button type="submit" className="btn-primary flex-[1.5] !px-3 disabled:cursor-not-allowed disabled:opacity-50" disabled={priceError || areaError || needsCurrency}>Aplicar filtros</button>
           </div>
+          <p className="text-center text-[11px] text-latorre-ink/50">{loading ? 'Actualizando la búsqueda actual…' : error ? 'No se pudo cargar la búsqueda actual.' : `Búsqueda actual: ${resultCount} ${resultCount === 1 ? 'propiedad' : 'propiedades'}`}</p>
         </div>
-      </aside>
-    </>
+      </form>
+    </dialog>
   );
 }

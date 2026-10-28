@@ -94,7 +94,7 @@ export function PropertyDetailPage() {
           <p className="font-display text-xl font-semibold text-latorre-dark">No encontramos esta propiedad</p>
           <p className="text-sm text-latorre-ink/60">Puede que ya no esté disponible o el enlace sea incorrecto.</p>
           <button className="btn-primary" onClick={() => navigate('/')}>
-            Volver al mapa
+            Volver a las propiedades
           </button>
         </div>
       </div>
@@ -112,7 +112,7 @@ export function PropertyDetailPage() {
 
       <main className="app-shell px-4 py-5 sm:px-6 lg:px-8 lg:py-8">
         <Link to="/" className="mb-4 inline-flex items-center gap-1.5 text-sm font-medium text-latorre-ink/60 hover:text-latorre-dark">
-          <ChevronLeft size={16} /> Volver al mapa
+          <ChevronLeft size={16} /> Volver a las propiedades
         </Link>
 
         {/* Galería principal */}

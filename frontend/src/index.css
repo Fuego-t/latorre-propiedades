@@ -58,11 +58,11 @@
 
 
 
-/* Ancho de la franja que acompaña al mapa en pantallas anchas.
+/* Ancho adaptable de la franja que acompaña al mapa desde notebooks.
    Vive acá porque lo necesitan dos lugares: la franja misma y las tarjetas
    flotantes, que arrancan después de ella para no taparla. Un solo número. */
 :root {
-  --franja-lateral: 340px;
+  --franja-lateral: clamp(220px, 20vw, 340px);
 }
 
 @layer utilities {

@@ -267,7 +267,7 @@ export function MapView({
   }, [selectedPropertyId]);
 
   return (
-    <div className="relative h-full w-full">
+    <div className="relative isolate h-full w-full">
       <div ref={containerRef} className="h-full w-full" role="application" aria-label="Mapa interactivo de propiedades" />
 
       <div className="pointer-events-none absolute bottom-4 left-4 z-[500] sm:bottom-6 sm:left-6">
