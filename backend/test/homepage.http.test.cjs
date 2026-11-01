@@ -14,7 +14,11 @@ const image = (id) => ({ url: `https://photos.example/${id}.webp`, width: 1600, 
 const reference = (entry) => ({ propertyId: entry.id, imageUrl: entry.images[0].url });
 
 test('homepage HTTP authentication, persistence and public status filtering', async (t) => {
-  const inventory = ['A', 'B', 'C', 'D', 'E'].map((id) => ({ id, code: id, location: 'Brandsen', status: 'AVAILABLE', propertyType: 'HOUSE', featured: false, images: [image(id)] }));
+  const inventory = Array.from({ length: 12 }, (_, index) => {
+    const id = String.fromCharCode(65 + index);
+    return { id, code: id, location: 'Brandsen', status: 'AVAILABLE', propertyType: 'HOUSE', featured: false, images: [image(id)] };
+  });
+  inventory[0].images.push({ ...image('A2'), order: 1, isMain: false });
   const originalFind = prisma.property.findMany;
   const originalRead = prisma.homepageSettings.findUnique;
   const originalWrite = prisma.homepageSettings.upsert;
@@ -31,7 +35,9 @@ test('homepage HTTP authentication, persistence and public status filtering', as
   const base = `http://127.0.0.1:${server.address().port}/api`;
   const token = signAdminToken({ sub: 'test-agent', name: 'Test Agent', email: 'test@example.test', role: 'AGENT' });
   const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
-  const selection = [inventory[3], inventory[1], inventory[4], inventory[0]].map(reference);
+  const legacySelection = [inventory[3], inventory[1], inventory[4], inventory[0]].map(reference);
+  const selection = [...legacySelection, ...inventory.slice(5, 11).map(reference)];
+  const expectedIds = ['D', 'B', 'E', 'A', 'F', 'G', 'H', 'I', 'J', 'K'];
   try {
     await t.test('administration rejects missing and invalid auth before querying data', async () => {
       for (const method of ['GET', 'PUT']) {
@@ -50,7 +56,8 @@ test('homepage HTTP authentication, persistence and public status filtering', as
       assert.equal(response.headers.get('cache-control'), 'no-store');
       const data = await response.json();
       assert.deepEqual(Object.keys(data), ['slides']);
-      assert.equal(data.slides.length, 4);
+      assert.equal(data.slides.length, 10);
+      assert.equal(new Set(data.slides.map((slide) => slide.propertyId)).size, 10);
       assert.deepEqual(Object.keys(data.slides[0]).sort(), ['image', 'location', 'propertyCode', 'propertyId']);
       assert.equal(writes, 0);
     });
@@ -60,7 +67,19 @@ test('homepage HTTP authentication, persistence and public status filtering', as
       assert.equal(response.status, 200);
       const data = await response.json();
       assert.equal(data.selection, null);
-      assert.equal(data.slides.length, 4);
+      assert.equal(data.slides.length, 10);
+    });
+
+    await t.test('legacy four-photo settings retain their order and fill up to ten distinct properties without writes', async () => {
+      stored = { selection: legacySelection };
+      const response = await fetch(`${base}/admin/homepage`, { headers });
+      assert.equal(response.status, 200);
+      const data = await response.json();
+      assert.deepEqual(data.selection, legacySelection);
+      assert.deepEqual(data.slides.slice(0, 4).map((slide) => slide.propertyId), ['D', 'B', 'E', 'A']);
+      assert.equal(data.slides.length, 10);
+      assert.equal(new Set(data.slides.map((slide) => slide.propertyId)).size, 10);
+      assert.equal(writes, 0);
     });
 
     await t.test('authenticated save persists ordering and a later public read uses it', async () => {
@@ -68,9 +87,9 @@ test('homepage HTTP authentication, persistence and public status filtering', as
       assert.equal(response.status, 200);
       const data = await response.json();
       assert.deepEqual(data.selection, selection);
-      assert.deepEqual(data.slides.map((slide) => slide.propertyId), ['D', 'B', 'E', 'A']);
+      assert.deepEqual(data.slides.map((slide) => slide.propertyId), expectedIds);
       const publicResponse = await fetch(`${base}/homepage`);
-      assert.deepEqual((await publicResponse.json()).slides.map((slide) => slide.propertyId), ['D', 'B', 'E', 'A']);
+      assert.deepEqual((await publicResponse.json()).slides.map((slide) => slide.propertyId), expectedIds);
       assert.equal(writes, 1);
     });
 
@@ -79,18 +98,21 @@ test('homepage HTTP authentication, persistence and public status filtering', as
       const response = await fetch(`${base}/homepage`);
       assert.equal(response.status, 200);
       const { slides } = await response.json();
-      assert.equal(slides.length, 4);
-      assert.deepEqual(slides.map((slide) => slide.propertyId), ['C', 'B', 'E', 'A']);
+      assert.equal(slides.length, 10);
+      assert.deepEqual(slides.map((slide) => slide.propertyId), ['C', 'B', 'E', 'A', 'F', 'G', 'H', 'I', 'J', 'K']);
+      assert.equal(new Set(slides.map((slide) => slide.propertyId)).size, 10);
       assert.ok(slides.every((slide) => slide.propertyId !== 'D'));
       assert.equal(writes, 1);
     });
 
     await t.test('incomplete, duplicate, unpublished and unknown photos are rejected without altering settings', async () => {
       const invalidSelections = [
-        selection.slice(0, 3),
-        Array(4).fill(selection[0]),
+        selection.slice(0, 9),
+        legacySelection,
+        Array(10).fill(selection[0]),
+        [...inventory.slice(0, 9).map(reference), { propertyId: 'A', imageUrl: image('A2').url }],
         selection,
-        [reference(inventory[0]), reference(inventory[1]), reference(inventory[2]), { propertyId: 'E', imageUrl: 'https://photos.example/unknown.webp' }],
+        [...inventory.slice(0, 9).filter((property) => property.status === 'AVAILABLE').map(reference), reference(inventory[9]), { propertyId: 'K', imageUrl: 'https://photos.example/unknown.webp' }],
       ];
       for (const invalidSelection of invalidSelections) {
         const response = await fetch(`${base}/admin/homepage`, { method: 'PUT', headers, body: JSON.stringify({ selection: invalidSelection }) });
@@ -98,6 +120,16 @@ test('homepage HTTP authentication, persistence and public status filtering', as
       }
       assert.equal(writes, 1);
       assert.deepEqual(stored.selection, selection);
+    });
+
+    await t.test('fewer than ten published properties produce a shorter carousel without repeating properties', async () => {
+      inventory.forEach((property, index) => { property.status = index < 2 ? 'AVAILABLE' : 'HIDDEN'; });
+      const response = await fetch(`${base}/homepage`);
+      assert.equal(response.status, 200);
+      const data = await response.json();
+      assert.equal(data.slides.length, 2);
+      assert.equal(new Set(data.slides.map((slide) => slide.propertyId)).size, 2);
+      assert.equal(writes, 1);
     });
   } finally {
     await new Promise((resolve) => server.close(resolve));

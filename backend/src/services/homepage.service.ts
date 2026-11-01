@@ -2,7 +2,7 @@ import { Prisma, Property } from '@prisma/client';
 import { z } from 'zod';
 import { prisma } from '../lib/prisma';
 import { ApiError } from '../middleware/errorHandler';
-import { HeroSlideSelection, homepageInputSchema } from '../validators/homepage.schema';
+import { HeroSlideSelection, homepageInputSchema, storedHomepageSelectionSchema } from '../validators/homepage.schema';
 
 export type { HeroSlideSelection } from '../validators/homepage.schema';
 
@@ -65,23 +65,33 @@ export function resolveHomepageSlides(properties: HomepageProperty[], selection:
     location: entry.property.location,
     image,
   });
-  // Primero una foto por propiedad; después, otras fotos si el catálogo es pequeño.
-  const defaults = [
-    ...ranked.map((entry) => toSlide(entry, entry.images[0])),
-    ...ranked.flatMap((entry) => entry.images.slice(1).map((image) => toSlide(entry, image))),
-  ];
-  const saved = (selection ?? []).slice(0, 4).map((reference) => {
+  const reservedProperties = new Set<string>();
+  const reservedImages = new Set<string>();
+  const saved = (selection ?? []).slice(0, 10).map((reference) => {
     const entry = ranked.find((candidate) => candidate.property.id === reference.propertyId);
     const image = entry?.images.find((candidate) => candidate.url === reference.imageUrl);
-    return entry && image ? toSlide(entry, image) : null;
+    if (!entry || !image || reservedProperties.has(entry.property.id) || reservedImages.has(image.url)) return null;
+    reservedProperties.add(entry.property.id);
+    reservedImages.add(image.url);
+    return toSlide(entry, image);
   });
-  const reserved = new Set(saved.flatMap((slide) => slide ? [slide.image.url] : []));
-  const used = new Set<string>();
-  const nextDefault = () => defaults.find((slide) => !used.has(slide.image.url) && !reserved.has(slide.image.url));
-  return Array.from({ length: 4 }, (_, index) => {
-    const preferred = saved[index];
-    const slide = preferred && !used.has(preferred.image.url) ? preferred : nextDefault();
-    if (slide) used.add(slide.image.url);
+  const usedProperties = new Set<string>();
+  const usedImages = new Set<string>();
+  const nextDefault = () => {
+    for (const entry of ranked) {
+      if (usedProperties.has(entry.property.id) || reservedProperties.has(entry.property.id)) continue;
+      const image = entry.images.find((candidate) => !usedImages.has(candidate.url) && !reservedImages.has(candidate.url));
+      if (image) return toSlide(entry, image);
+    }
+    return null;
+  };
+  // Una propiedad aporta como máximo una foto, incluso si el catálogo tiene menos de diez.
+  return Array.from({ length: 10 }, (_, index) => {
+    const slide = saved[index] ?? nextDefault();
+    if (slide) {
+      usedProperties.add(slide.propertyId);
+      usedImages.add(slide.image.url);
+    }
     return slide;
   }).filter((slide): slide is HeroSlide => !!slide);
 }
@@ -91,8 +101,8 @@ export async function getHomepageSettings() {
     prisma.homepageSettings.findUnique({ where: { id: 'homepage' } }),
     listEligibleProperties(),
   ]);
-  const parsed = homepageInputSchema.safeParse(settings ? { selection: settings.selection } : null);
-  const selection = parsed.success ? parsed.data.selection : null;
+  const parsed = storedHomepageSelectionSchema.safeParse(settings?.selection);
+  const selection = parsed.success ? parsed.data : null;
   return { selection, slides: resolveHomepageSlides(properties, selection) };
 }
 
