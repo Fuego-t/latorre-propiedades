@@ -6,9 +6,11 @@ import { env } from './config/env';
 import propertiesRoutes from './routes/properties.routes';
 import locationsRoutes from './routes/locations.routes';
 import leadsRoutes from './routes/leads.routes';
+import homepageRoutes from './routes/homepage.routes';
 import adminAuthRoutes from './routes/admin/auth.routes';
 import adminPropertiesRoutes from './routes/admin/properties.routes';
 import adminLeadsRoutes from './routes/admin/leads.routes';
+import adminHomepageRoutes from './routes/admin/homepage.routes';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler';
 
 export const app = express();
@@ -40,11 +42,13 @@ app.get('/api/health', (_req, res) => res.json({ ok: true, service: 'latorre-pro
 app.use('/api/properties', propertiesRoutes);
 app.use('/api/locations', locationsRoutes);
 app.use('/api/leads', leadsRoutes);
+app.use('/api/homepage', homepageRoutes);
 
 // Rutas administrativas (protegidas dentro de cada router)
 app.use('/api/admin/auth', adminAuthRoutes);
 app.use('/api/admin/properties', adminPropertiesRoutes);
 app.use('/api/admin/leads', adminLeadsRoutes);
+app.use('/api/admin/homepage', adminHomepageRoutes);
 
 app.use(notFoundHandler);
 app.use(errorHandler);

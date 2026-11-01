@@ -73,6 +73,14 @@ model Location {
   createdAt DateTime @default(now())
 }
 
+// Selección global de las cuatro fotos de portada, compartida por todos los visitantes.
+// Se guardan referencias a fotos reales; al leer se comprueba que sigan publicadas.
+model HomepageSettings {
+  id        String   @id @default("homepage")
+  selection Json
+  updatedAt DateTime @updatedAt
+}
+
 model Property {
   id     String @id @default(cuid())
   code   String @unique
