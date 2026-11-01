@@ -19,6 +19,8 @@ test('homepage HTTP authentication, persistence and public status filtering', as
     return { id, code: id, location: 'Brandsen', status: 'AVAILABLE', propertyType: 'HOUSE', featured: false, images: [image(id)] };
   });
   inventory[0].images.push({ ...image('A2'), order: 1, isMain: false });
+  Object.assign(inventory[0].images[0], { focusX: 0.15, focusY: 0.65, zoom: 1.25, fit: 'contain' });
+  const originalPhotos = JSON.stringify(inventory.map((property) => property.images));
   const originalFind = prisma.property.findMany;
   const originalRead = prisma.homepageSettings.findUnique;
   const originalWrite = prisma.homepageSettings.upsert;
@@ -36,7 +38,9 @@ test('homepage HTTP authentication, persistence and public status filtering', as
   const token = signAdminToken({ sub: 'test-agent', name: 'Test Agent', email: 'test@example.test', role: 'AGENT' });
   const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
   const legacySelection = [inventory[3], inventory[1], inventory[4], inventory[0]].map(reference);
-  const selection = [...legacySelection, ...inventory.slice(5, 11).map(reference)];
+  const selection = [...legacySelection, ...inventory.slice(5, 11).map(reference)]
+    .map((entry, index) => index === 0 ? { ...entry, focusX: 0, focusY: 1, zoom: 0.6, fit: 'contain' }
+      : index === 3 ? { ...entry, zoom: 1.5, fit: 'cover' } : entry);
   const expectedIds = ['D', 'B', 'E', 'A', 'F', 'G', 'H', 'I', 'J', 'K'];
   try {
     await t.test('administration rejects missing and invalid auth before querying data', async () => {
@@ -58,7 +62,8 @@ test('homepage HTTP authentication, persistence and public status filtering', as
       assert.deepEqual(Object.keys(data), ['slides']);
       assert.equal(data.slides.length, 10);
       assert.equal(new Set(data.slides.map((slide) => slide.propertyId)).size, 10);
-      assert.deepEqual(Object.keys(data.slides[0]).sort(), ['image', 'location', 'propertyCode', 'propertyId']);
+      assert.deepEqual(Object.keys(data.slides[0]).sort(), ['image', 'location', 'presentation', 'propertyCode', 'propertyId']);
+      assert.deepEqual(data.slides.find((slide) => slide.propertyId === 'A').presentation, { focusX: 0.15, focusY: 0.65, zoom: 1.25, fit: 'contain' });
       assert.equal(writes, 0);
     });
 
@@ -88,9 +93,31 @@ test('homepage HTTP authentication, persistence and public status filtering', as
       const data = await response.json();
       assert.deepEqual(data.selection, selection);
       assert.deepEqual(data.slides.map((slide) => slide.propertyId), expectedIds);
+      assert.deepEqual(data.slides[0].presentation, { focusX: 0, focusY: 1, zoom: 0.6, fit: 'contain' });
+      assert.deepEqual(data.slides[3].presentation, { focusX: 0.15, focusY: 0.65, zoom: 1.5, fit: 'cover' });
+      assert.deepEqual(data.slides[3].image, inventory[0].images[0]);
       const publicResponse = await fetch(`${base}/homepage`);
-      assert.deepEqual((await publicResponse.json()).slides.map((slide) => slide.propertyId), expectedIds);
+      const publicData = await publicResponse.json();
+      assert.deepEqual(publicData.slides.map((slide) => slide.propertyId), expectedIds);
+      assert.deepEqual(publicData.slides[0].presentation, data.slides[0].presentation);
+      assert.equal(JSON.stringify(inventory.map((property) => property.images)), originalPhotos);
       assert.equal(writes, 1);
+    });
+
+    await t.test('invalid presentation settings return 400 and preserve previously saved controls', async () => {
+      for (const fields of [{ focusX: -0.1 }, { focusX: 1.1 }, { focusY: 2 }, { zoom: 0.4 }, { zoom: 2.1 }, { zoom: '1.5' }, { zoom: null }, { fit: 'stretch' }]) {
+        const response = await fetch(`${base}/admin/homepage`, {
+          method: 'PUT', headers,
+          body: JSON.stringify({ selection: [{ ...selection[0], ...fields }, ...selection.slice(1)] }),
+        });
+        assert.equal(response.status, 400);
+      }
+      assert.equal(writes, 1);
+      assert.deepEqual(stored.selection, selection);
+      const response = await fetch(`${base}/admin/homepage`, { headers });
+      const data = await response.json();
+      assert.deepEqual(data.slides[0].presentation, { focusX: 0, focusY: 1, zoom: 0.6, fit: 'contain' });
+      assert.equal(JSON.stringify(inventory.map((property) => property.images)), originalPhotos);
     });
 
     await t.test('hidden properties disappear from saved references and get a real fallback', async () => {

@@ -23,7 +23,8 @@ test('automatic selection prefers the original cover and ten distinct published 
   assert.equal(slides[0].propertyCode, 'LP-2609-N1AP');
   assert.equal(new Set(slides.map((slide) => slide.propertyId)).size, 10);
   assert.ok(slides.every((slide) => !['hidden', 'sold'].includes(slide.propertyId)));
-  assert.deepEqual(Object.keys(slides[0]).sort(), ['image', 'location', 'propertyCode', 'propertyId']);
+  assert.deepEqual(Object.keys(slides[0]).sort(), ['image', 'location', 'presentation', 'propertyCode', 'propertyId']);
+  assert.deepEqual(slides[0].presentation, { focusX: 0.5, focusY: 0.5, zoom: 1, fit: 'cover' });
 });
 
 test('saved ordering survives a deleted image and fallback never repeats a saved property', () => {
@@ -59,6 +60,46 @@ test('input requires ten different properties and images, including when duplica
   assert.equal(homepageInputSchema.safeParse({ selection: inventory.slice(0, 10).map(reference) }).success, true);
 });
 
+test('per-slide presentation inherits property metadata and overrides it without altering the original photo', () => {
+  const originalImage = image('A', { focusX: 0.2, focusY: 0.8, zoom: 0.75, fit: 'contain', customMetadata: { source: 'original-photo' } });
+  const entry = property('A', { images: [originalImage] });
+  const before = JSON.stringify(entry);
+  const inherited = resolveHomepageSlides([entry], null)[0];
+  assert.deepEqual(inherited.presentation, { focusX: 0.2, focusY: 0.8, zoom: 0.75, fit: 'contain' });
+  const selected = { ...reference(entry), focusX: 0, focusY: 1, zoom: 2, fit: 'cover' };
+  const overridden = resolveHomepageSlides([entry], [selected])[0];
+  assert.deepEqual(overridden.presentation, { focusX: 0, focusY: 1, zoom: 2, fit: 'cover' });
+  assert.deepEqual(overridden.image, originalImage);
+  assert.equal(overridden.image.url, originalImage.url);
+  assert.equal(JSON.stringify(entry), before);
+  const partial = resolveHomepageSlides([entry], [{ ...reference(entry), focusX: 0 }])[0];
+  assert.deepEqual(partial.presentation, { focusX: 0, focusY: 0.8, zoom: 0.75, fit: 'contain' });
+});
+
+test('replacement properties use their own presentation and never inherit a missing photo crop', () => {
+  const replacement = property('A', { images: [image('A', { focusX: 0.1, zoom: 1.2 })] });
+  const stale = { propertyId: 'missing', imageUrl: image('missing').url, focusX: 1, focusY: 0, zoom: 2, fit: 'contain' };
+  const slide = resolveHomepageSlides([replacement], [stale])[0];
+  assert.equal(slide.propertyId, 'A');
+  assert.deepEqual(slide.presentation, { focusX: 0.1, focusY: 0.5, zoom: 1.2, fit: 'cover' });
+});
+
+test('presentation validation accepts bounds and rejects invalid, non-finite and out-of-range settings', () => {
+  const selection = inventory.slice(0, 10).map(reference);
+  const parseFirst = (fields) => homepageInputSchema.safeParse({ selection: [{ ...selection[0], ...fields }, ...selection.slice(1)] });
+  assert.equal(parseFirst({ focusX: 0, focusY: 1, zoom: 0.5, fit: 'contain' }).success, true);
+  assert.equal(parseFirst({ focusX: 1, focusY: 0, zoom: 2, fit: 'cover' }).success, true);
+  for (const field of ['focusX', 'focusY']) {
+    for (const value of [-0.01, 1.01, NaN, Infinity, -Infinity, '0.5', null]) {
+      assert.equal(parseFirst({ [field]: value }).success, false, `${field} ${String(value)} accepted`);
+    }
+  }
+  for (const value of [0.49, 2.01, NaN, Infinity, -Infinity, '1', null]) {
+    assert.equal(parseFirst({ zoom: value }).success, false, `zoom ${String(value)} accepted`);
+  }
+  assert.equal(parseFirst({ fit: 'stretch' }).success, false);
+});
+
 test('reads are side effect free and failed saves preserve durable selection', async () => {
   const originalFind = prisma.property.findMany;
   const originalRead = prisma.homepageSettings.findUnique;
@@ -82,14 +123,20 @@ test('reads are side effect free and failed saves preserve durable selection', a
     assert.equal(legacy.slides.length, 10);
     assert.equal(new Set(legacy.slides.map((slide) => slide.propertyId)).size, 10);
     assert.equal(writes.length, 0);
-    const selection = [...legacySelection, ...inventory.slice(5, 11).map(reference)];
+    const selection = [...legacySelection, ...inventory.slice(5, 11).map(reference)]
+      .map((entry, index) => index === 0 ? { ...entry, focusX: 0.1, focusY: 0.9, zoom: 1.75, fit: 'contain' } : entry);
+    const originalPhotos = JSON.stringify(inventory.map((entry) => entry.images));
     const saved = await saveHomepageSettings({ selection });
     assert.deepEqual(saved.selection, selection);
     assert.deepEqual(saved.slides.map((slide) => slide.propertyId), ['D', 'B', 'E', 'A', 'F', 'G', 'H', 'I', 'J', 'K']);
     assert.equal(writes.length, 1);
-    assert.deepEqual((await getHomepageSettings()).selection, selection);
+    const readBack = await getHomepageSettings();
+    assert.deepEqual(readBack.selection, selection);
+    assert.deepEqual(readBack.slides[0].presentation, { focusX: 0.1, focusY: 0.9, zoom: 1.75, fit: 'contain' });
+    assert.equal(JSON.stringify(inventory.map((entry) => entry.images)), originalPhotos);
 
     await assert.rejects(saveHomepageSettings({ selection: [reference(inventory[0])] }));
+    await assert.rejects(saveHomepageSettings({ selection: [{ ...selection[0], zoom: 3 }, ...selection.slice(1)] }));
     await assert.rejects(saveHomepageSettings({ selection: [...inventory.slice(0, 9).map(reference), { propertyId: 'J', imageUrl: 'https://photos.example/not-an-actual-photo.webp' }] }), /ya no está disponible/);
     assert.equal(writes.length, 1);
     assert.deepEqual(stored.selection, selection);
