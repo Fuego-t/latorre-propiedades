@@ -96,7 +96,9 @@ test('sitemap uses canonical domain, stable lastmod and escaped URL content', ()
   assert.match(xml, /https:\/\/latorrepropiedades\.com\/propiedad\/a%26b%3C%2Floc%3E/);
   assert.match(xml, /<lastmod>2026-11-07T00:00:00\.000Z<\/lastmod>/);
   assert.equal(escapeXml('&<>"\''), '&amp;&lt;&gt;&quot;&apos;');
-  assert.equal((xml.match(/<url>/g) || []).length, 2);
+  assert.match(xml, /<loc>https:\/\/latorrepropiedades\.com\/casas-en-venta-en-brandsen<\/loc>/);
+  assert.match(xml, /<loc>https:\/\/latorrepropiedades\.com\/privacidad<\/loc>/);
+  assert.equal((xml.match(/<url>/g) || []).length, 4);
   assert.equal(xml.includes('web.app'), false);
 });
 

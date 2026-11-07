@@ -39,7 +39,7 @@ function propertySeo(property, origin = ORIGIN) {
     '@context': 'https://schema.org', '@type': 'RealEstateListing', '@id': `${canonical}#listing`,
     name: heading, url: canonical, description: plain(property.description), image,
     mainEntity: { '@type': property.propertyType === 'APARTMENT' ? 'Apartment' : ['HOUSE', 'COUNTRY_HOUSE'].includes(property.propertyType) ? 'House' : 'Place', name: plain(property.title), address },
-    offers: { '@type': 'Offer', url: canonical, ...(property.price != null && Number.isFinite(Number(property.price)) && Number(property.price) >= 0 ? { price: Number(property.price), priceCurrency: property.currency } : {}), seller: { '@type': 'RealEstateAgent', name: 'Latorre Propiedades', url: `${origin}/` } },
+    offers: { '@type': 'Offer', url: canonical, businessFunction: property.operationType === 'SALE' ? 'http://purl.org/goodrelations/v1#Sell' : 'http://purl.org/goodrelations/v1#LeaseOut', ...(property.price != null && Number.isFinite(Number(property.price)) && Number(property.price) >= 0 ? { price: Number(property.price), priceCurrency: property.currency } : {}), seller: { '@type': 'RealEstateAgent', name: 'Latorre Propiedades', url: `${origin}/` } },
   };
   return { title, heading, description, canonical, image, structuredData };
 }

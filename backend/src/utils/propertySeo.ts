@@ -27,7 +27,7 @@ export function escapeXml(value: string): string {
 }
 
 export function buildPublicSitemap(properties: ReadonlyArray<{ id: string; updatedAt: Date | string }>): string {
-  const urls = [`  <url><loc>${PUBLIC_SITE_ORIGIN}/</loc></url>`];
+  const urls = ['/', '/casas-en-venta-en-brandsen', '/privacidad'].map(path => `  <url><loc>${PUBLIC_SITE_ORIGIN}${path}</loc></url>`);
   for (const property of properties) {
     const updatedAt = new Date(property.updatedAt);
     const lastmod = Number.isNaN(updatedAt.getTime()) ? '' : `<lastmod>${updatedAt.toISOString()}</lastmod>`;

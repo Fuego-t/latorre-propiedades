@@ -126,6 +126,8 @@ function withSeoConfig(config: JsonObject, redirects: SeoRedirect[]): JsonObject
   };
   mergeHeader('/admin', { 'X-Robots-Tag': 'noindex, nofollow, noarchive' });
   mergeHeader('/admin/**', { 'X-Robots-Tag': 'noindex, nofollow, noarchive' });
+  mergeHeader('/', { 'Cache-Control': 'no-cache' });
+  mergeHeader('/casas-en-venta-en-brandsen{,/**}', { 'Cache-Control': 'no-cache' });
   mergeHeader('/propiedad/**', { 'Cache-Control': 'no-store' });
   mergeHeader('/sitemap.xml', { 'Cache-Control': 'no-cache', 'Content-Type': 'application/xml; charset=utf-8' });
   mergeHeader('/robots.txt', { 'Cache-Control': 'no-cache', 'Content-Type': 'text/plain; charset=utf-8' });
