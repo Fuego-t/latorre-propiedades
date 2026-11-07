@@ -5,6 +5,8 @@ import { generatePropertyCode } from '../utils/propertyCode';
 import { deletePropertyImage } from './image.service';
 import { z } from 'zod';
 import { propertyFiltersSchema, propertyInputSchema } from '../validators/property.schema';
+import { withSeoPublication } from './seoMutation.service';
+import { isLegacyPropertyId } from '../utils/propertySeo';
 
 type Filters = z.infer<typeof propertyFiltersSchema>;
 type PropertyInput = z.infer<typeof propertyInputSchema>;
@@ -12,7 +14,7 @@ type PropertyInput = z.infer<typeof propertyInputSchema>;
 const VISIBLE_PUBLIC_STATUSES: Property['status'][] = ['AVAILABLE', 'RESERVED'];
 
 /** Estados que jamás deben verse en el mapa/listado público (vendidas, alquiladas, pausadas u ocultas). */
-function publicWhere(extra: Prisma.PropertyWhereInput = {}): Prisma.PropertyWhereInput {
+export function publicWhere(extra: Prisma.PropertyWhereInput = {}): Prisma.PropertyWhereInput {
   return { status: { in: VISIBLE_PUBLIC_STATUSES }, ...extra };
 }
 
@@ -105,8 +107,27 @@ export async function listPublicProperties(filters: Filters) {
 
 export async function getPublicPropertyById(id: string) {
   const property = await prisma.property.findFirst({ where: { id, ...publicWhere() } });
-  if (!property) return null;
-  return toPublicDto(property);
+  if (property) return toPublicDto(property);
+
+  // Los enlaces de la web anterior usaban el identificador de BuscadorProp.
+  // Se consulta metadata interna sólo para resolverlo; nunca se devuelve al público.
+  if (!isLegacyPropertyId(id)) return null;
+  const legacyMatches = await prisma.property.findMany({
+    where: publicWhere({
+      AND: [
+        { features: { path: ['source'], equals: 'buscadorprop' } },
+        {
+          OR: [
+            { features: { path: ['sourceId'], equals: id } },
+            { features: { path: ['sourceId'], equals: Number(id) } },
+          ],
+        },
+      ],
+    }),
+    take: 2,
+  });
+  // Un origen duplicado no debe llevar al visitante a una propiedad equivocada.
+  return legacyMatches.length === 1 ? toPublicDto(legacyMatches[0]) : null;
 }
 
 export async function getRelatedProperties(property: Property, limit = 4) {
@@ -135,61 +156,46 @@ function withPublicCoordinates(input: {
 }
 
 export async function createProperty(input: PropertyInput) {
-  const code = generatePropertyCode();
-  const id = `tmp-${code}`; // usado sólo para el hash determinístico del jitter antes de tener el id real
-
-  const created = await prisma.property.create({
-    data: {
-      ...toPrismaData(input),
-      code,
-    },
-  });
-
-  // Ahora que existe el id definitivo, recalculamos las coordenadas públicas con el id real
-  const { publicLatitude, publicLongitude } = withPublicCoordinates({
-    id: created.id,
-    latitude: input.latitude,
-    longitude: input.longitude,
-    showExactLocation: input.showExactLocation,
-  });
-
-  return prisma.property.update({
-    where: { id: created.id },
-    data: { publicLatitude, publicLongitude },
+  return withSeoPublication(async (transaction) => {
+    const code = generatePropertyCode();
+    const created = await transaction.property.create({
+      data: { ...toPrismaData(input), code },
+    });
+    // El desplazamiento público depende del identificador definitivo.
+    const { publicLatitude, publicLongitude } = withPublicCoordinates({
+      id: created.id,
+      latitude: input.latitude,
+      longitude: input.longitude,
+      showExactLocation: input.showExactLocation,
+    });
+    return transaction.property.update({
+      where: { id: created.id },
+      data: { publicLatitude, publicLongitude },
+    });
   });
 }
 
 export async function updateProperty(id: string, input: Partial<PropertyInput>) {
-  const existing = await prisma.property.findUniqueOrThrow({ where: { id } });
-
-  const latitude = input.latitude ?? existing.latitude;
-  const longitude = input.longitude ?? existing.longitude;
-  const showExactLocation = input.showExactLocation ?? existing.showExactLocation;
-
-  const { publicLatitude, publicLongitude } = withPublicCoordinates({
-    id,
-    latitude,
-    longitude,
-    showExactLocation,
-  });
-
-  return prisma.property.update({
-    where: { id },
-    data: {
-      ...toPrismaData(input as PropertyInput),
-      publicLatitude,
-      publicLongitude,
-    },
+  return withSeoPublication(async (transaction) => {
+    const existing = await transaction.property.findUniqueOrThrow({ where: { id } });
+    const latitude = input.latitude ?? existing.latitude;
+    const longitude = input.longitude ?? existing.longitude;
+    const showExactLocation = input.showExactLocation ?? existing.showExactLocation;
+    const { publicLatitude, publicLongitude } = withPublicCoordinates({ id, latitude, longitude, showExactLocation });
+    return transaction.property.update({
+      where: { id },
+      data: { ...toPrismaData(input as PropertyInput), publicLatitude, publicLongitude },
+    });
   });
 }
 
 export async function updatePropertyStatus(id: string, status: Property['status']) {
-  return prisma.property.update({ where: { id }, data: { status } });
+  return withSeoPublication(transaction => transaction.property.update({ where: { id }, data: { status } }));
 }
 
 export async function deleteProperty(id: string) {
   const property = await prisma.property.findUnique({ where: { id } });
-  const deleted = await prisma.property.delete({ where: { id } });
+  const deleted = await withSeoPublication(transaction => transaction.property.delete({ where: { id } }));
 
   // Las fotos viven fuera de la base (Cloudinary o la carpeta uploads/): si no se borran
   // acá quedan huérfanas ocupando lugar para siempre. Se hace después del delete y sin

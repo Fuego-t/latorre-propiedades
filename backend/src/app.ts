@@ -7,10 +7,12 @@ import propertiesRoutes from './routes/properties.routes';
 import locationsRoutes from './routes/locations.routes';
 import leadsRoutes from './routes/leads.routes';
 import homepageRoutes from './routes/homepage.routes';
+import seoRoutes, { servePublicSitemap } from './routes/seo.routes';
 import adminAuthRoutes from './routes/admin/auth.routes';
 import adminPropertiesRoutes from './routes/admin/properties.routes';
 import adminLeadsRoutes from './routes/admin/leads.routes';
 import adminHomepageRoutes from './routes/admin/homepage.routes';
+import adminSeoRoutes from './routes/admin/seo.routes';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler';
 
 export const app = express();
@@ -39,6 +41,8 @@ app.use(
 app.get('/api/health', (_req, res) => res.json({ ok: true, service: 'latorre-propiedades-api' }));
 
 // Rutas públicas
+app.use('/api', seoRoutes);
+app.get('/sitemap.xml', servePublicSitemap);
 app.use('/api/properties', propertiesRoutes);
 app.use('/api/locations', locationsRoutes);
 app.use('/api/leads', leadsRoutes);
@@ -49,6 +53,7 @@ app.use('/api/admin/auth', adminAuthRoutes);
 app.use('/api/admin/properties', adminPropertiesRoutes);
 app.use('/api/admin/leads', adminLeadsRoutes);
 app.use('/api/admin/homepage', adminHomepageRoutes);
+app.use('/api/admin/seo', adminSeoRoutes);
 
 app.use(notFoundHandler);
 app.use(errorHandler);

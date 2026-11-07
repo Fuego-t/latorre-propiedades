@@ -3,6 +3,7 @@ import { asyncHandler } from '../../utils/asyncHandler';
 import { ApiError } from '../../middleware/errorHandler';
 import { prisma } from '../../lib/prisma';
 import { deletePropertyImage, uploadPropertyImage } from '../../services/image.service';
+import { withSeoPublication } from '../../services/seoMutation.service';
 
 interface PropertyImage {
   url: string;
@@ -38,10 +39,10 @@ export const uploadImages = asyncHandler(async (req: Request, res: Response) => 
 
   const images = [...existing, ...uploaded];
 
-  const updated = await prisma.property.update({
+  const updated = await withSeoPublication(transaction => transaction.property.update({
     where: { id: property.id },
     data: { images: images as never },
-  });
+  }));
 
   res.status(201).json({ ok: true, images: updated.images });
 });
@@ -56,19 +57,19 @@ export const deleteImage = asyncHandler(async (req: Request, res: Response) => {
 
   await deletePropertyImage(req.params.imageId);
 
-  const updated = await prisma.property.update({
+  const updated = await withSeoPublication(transaction => transaction.property.update({
     where: { id: property.id },
     data: { images: images as never },
-  });
+  }));
 
   res.json({ ok: true, images: updated.images });
 });
 
 export const reorderImages = asyncHandler(async (req: Request, res: Response) => {
   const { images } = req.body as { images: PropertyImage[] };
-  const property = await prisma.property.update({
+  const property = await withSeoPublication(transaction => transaction.property.update({
     where: { id: req.params.id },
     data: { images: images as never },
-  });
+  }));
   res.json({ ok: true, images: property.images });
 });

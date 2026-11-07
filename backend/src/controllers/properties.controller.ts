@@ -20,13 +20,15 @@ export const getProperty = asyncHandler(async (req: Request, res: Response) => {
   const property = await getPublicPropertyById(req.params.id);
   if (!property) throw new ApiError(404, 'Propiedad no encontrada');
 
-  const raw = await prisma.property.findUnique({ where: { id: req.params.id } });
+  const raw = await prisma.property.findUnique({ where: { id: property.id } });
   const related = raw ? await getRelatedProperties(raw) : [];
 
   res.json({ ok: true, property, related });
 });
 
 export const registerView = asyncHandler(async (req: Request, res: Response) => {
-  await incrementViews(req.params.id);
+  const property = await getPublicPropertyById(req.params.id);
+  if (!property) throw new ApiError(404, 'Propiedad no encontrada');
+  await incrementViews(property.id);
   res.status(204).send();
 });

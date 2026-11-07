@@ -81,6 +81,17 @@ model HomepageSettings {
   updatedAt DateTime @updatedAt
 }
 
+// Cola persistente para sincronizar fichas HTML y sitemap al guardar en el panel.
+model SeoPublishState {
+  id                String    @id @default("seo")
+  requestedRevision Int       @default(0)
+  publishedRevision Int       @default(0)
+  leaseUntil        DateTime?
+  leaseToken        String?
+  lastError         String?
+  updatedAt         DateTime  @updatedAt
+}
+
 model Property {
   id     String @id @default(cuid())
   code   String @unique
